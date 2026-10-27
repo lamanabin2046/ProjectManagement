@@ -18,16 +18,9 @@ urlpatterns = [
 ]
 
 
+# /media/ — DEBUG होस् वा नहोस्, पालिकाअनुसार सुरक्षित (ProjectManagement/media.py)
+from django.urls import re_path
 
+from .media import tenant_media
 
-
-
-if settings.DEBUG:
-    from django.http import Http404
-    from django.urls import re_path
-
-    def _private_media(request, *args, **kwargs):
-        raise Http404  # सदस्यका कागजात: /UserCommittee/Person/<id>/doc/<kind>/ (अनुमति जाँचेर) मात्र
-
-    urlpatterns += [re_path(r"^media/[^/]+/persons/", _private_media)]
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+urlpatterns += [re_path(r"^media/(?P<path>.+)$", tenant_media)]

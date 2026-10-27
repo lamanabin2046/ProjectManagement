@@ -25,7 +25,7 @@ class PalikaLoginRequiredMiddleware:
     Only the login pages and Django admin (which has its own login) are open.
     """
 
-    OPEN_PREFIXES = ("/Accounts/login/", "/Accounts/doLogin/", "/admin/", "/static/", "/favicon.ico")
+    OPEN_PREFIXES = ("/Accounts/login/", "/Accounts/doLogin/", "/admin/", "/static/", "/media/palika_logos/", "/favicon.ico")
 
     def __init__(self, get_response):
         self.get_response = get_response

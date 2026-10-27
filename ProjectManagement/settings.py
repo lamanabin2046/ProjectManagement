@@ -88,6 +88,7 @@ MIDDLEWARE = [
     "django_tenants.middleware.main.TenantMainMiddleware",  # must be first: picks the palika from the host
     "tenants.middleware.InactivePalikaMiddleware",
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",  # /static/ (production मा पनि; cPanel/Passenger)
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -178,7 +179,7 @@ MEDIA_ROOT = BASE_DIR / "media"
 MULTITENANT_RELATIVE_MEDIA_ROOT = "%s"
 STORAGES = {
     "default": {"BACKEND": "django_tenants.files.storage.TenantFileSystemStorage"},
-    "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedStaticFilesStorage"},
 }
 
 
@@ -199,3 +200,39 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 NID_API_URL = os.environ.get("NID_API_URL", "")
 NID_API_KEY = os.environ.get("NID_API_KEY", "")
 NID_API_TIMEOUT = int(os.environ.get("NID_API_TIMEOUT", "8"))
+
+
+# ==================================================
+# PRODUCTION (DJANGO_DEBUG=False) — cPanel / Passenger
+# ==================================================
+if not DEBUG:
+    SESSION_COOKIE_SECURE = env_bool("SECURE_COOKIES", True)
+    CSRF_COOKIE_SECURE = env_bool("SECURE_COOKIES", True)
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    SECURE_SSL_REDIRECT = env_bool("SECURE_SSL_REDIRECT", False)
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    SECURE_REFERRER_POLICY = "same-origin"
+
+# त्रुटिहरू logs/django.log मा (cPanel मा हेर्न सजिलो)
+LOG_DIR = BASE_DIR / "logs"
+LOG_DIR.mkdir(exist_ok=True)
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {"plain": {"format": "%(asctime)s %(levelname)s %(name)s: %(message)s"}},
+    "handlers": {
+        "file": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "filename": LOG_DIR / "django.log",
+            "maxBytes": 5 * 1024 * 1024,
+            "backupCount": 5,
+            "formatter": "plain",
+            "level": "WARNING",
+        },
+        "console": {"class": "logging.StreamHandler", "level": "INFO"},
+    },
+    "loggers": {
+        "django": {"handlers": ["file", "console"], "level": "INFO"},
+        "django.request": {"handlers": ["file"], "level": "ERROR", "propagate": False},
+    },
+}
