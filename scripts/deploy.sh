@@ -18,7 +18,7 @@ if [ ! -f .env ]; then
   exit 1
 fi
 # .env बाट मान पढ्ने (source नगरी — मानमा space/चिन्ह भए पनि सुरक्षित)
-envval() { { grep -E "^$1=" .env || true; } | tail -1 | cut -d= -f2- | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//"; }
+envval() { { grep -E "^$1=" .env || true; } | tail -1 | cut -d= -f2- | tr -d '\r' | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//"; }
 
 VENV="${DEPLOY_VENV:-$(envval DEPLOY_VENV || true)}"
 if [ -z "$VENV" ]; then

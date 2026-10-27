@@ -88,7 +88,20 @@ bash scripts/deploy.sh
 ```
 अब `https://pms.example.com` मा SaaS Manager खुल्छ।
 
-### ३.६ हरेक नयाँ पालिका
+### ३.६ हरेक नयाँ पालिका — एकै command (सिफारिस)
+```bash
+cd ~/ProjectManagement
+bash scripts/new_palika.sh --code sunapati --name सुनापती --district रामेछाप \
+     --address हिलेदेवी --wards 5 --admin-mobile 98XXXXXXXX
+```
+यसले पालिका (schema, तालिका, वडा, admin) बनाउँछ, cPanel मा `<code>.<BASE_DOMAIN>` subdomain
+(BASE_DOMAIN कै public फोल्डरमा) थप्छ र AutoSSL सुरु गर्छ। admin पासवर्ड अन्त्यमा **एकपटक मात्र** देखिन्छ।
+`--type नगरपालिका` (default गाउँपालिका) पनि दिन मिल्छ। फेरि चलाउँदा भइसकेको चरण छोडिन्छ।
+
+**ध्यान:** कुनै पनि domain को Document Root कहिल्यै `ProjectManagement` (code फोल्डर) नराख्नुहोस् —
+सधैं BASE_DOMAIN कै public फोल्डर (जस्तै `pms.sunkoshimun.com`)।
+
+### ३.६.१ हातैले गर्ने तरिका
 1. **SaaS Manager → + नयाँ पालिका**, code: `bagmati`। Schema, तालिका र admin आफैं बन्छन्।
 2. cPanel → **Domains** → Create → `bagmati.pms.example.com`। Document root **`pms.example.com`
    कै document root** राख्नुहोस्, ताकि उही Python app चलोस्। AutoSSL ले HTTPS आफैं दिन्छ।

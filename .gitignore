@@ -38,3 +38,7 @@ logs/
 /public/
 stderr.log
 .well-known/
+/.htaccess
+/.user.ini
+/php.ini
+/cgi-bin/
