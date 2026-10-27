@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Import Excel{% endblock %}
+{% block content %}
+<div class="max-w-lg mx-auto">
+  <div class="card text-center p-8">
+
+    <div class="w-14 h-14 rounded-2xl bg-brand-50 text-brand-600 flex items-center justify-center text-2xl mx-auto mb-4">
+      <i class="fas fa-file-excel"></i>
+    </div>
+
+    <h1 class="text-lg font-bold text-slate-800 mb-1">Import Excel Data</h1>
+    <p class="text-sm text-slate-500 mb-6">Upload an Excel file (.xlsx) to import project data</p>
+
+    {% include 'includes/messages.html' %}
+
+    <form method="post" enctype="multipart/form-data" action="{% url 'import_excel' %}">
+      {% csrf_token %}
+
+      <label class="flex flex-col items-center justify-center gap-1 border-2 border-dashed border-brand-200 bg-brand-50/40 hover:bg-brand-50 hover:border-brand-400 rounded-2xl p-8 mb-4 cursor-pointer transition">
+        <i class="fas fa-cloud-arrow-up text-2xl text-brand-500 mb-1"></i>
+        <span class="font-semibold text-slate-700 text-sm">Click to select Excel file</span>
+        <span class="text-xs text-slate-400">Only .xlsx files are supported</span>
+        <input type="file" name="excel_file" accept=".xlsx" required class="hidden">
+      </label>
+
+      <button type="submit" class="btn-primary w-full">
+        <i class="fas fa-upload"></i> Upload Excel
+      </button>
+    </form>
+
+  </div>
+</div>
+{% endblock %}

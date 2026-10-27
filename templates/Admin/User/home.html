@@ -1,0 +1,502 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard{% endblock %}
+
+{% block extra_head %}
+<style>
+  /* Fixed, consistent chart heights across the whole dashboard — Chart.js is
+     told maintainAspectRatio:false so it fills exactly this box instead of
+     growing with the column width. Kept compact on purpose. */
+  .chart-box { position: relative; height: 130px; }
+  .chart-box-lg { position: relative; height: 170px; }
+  .chart-card-body { padding: 14px 16px; }
+  .chart-legend-row { margin-top: 8px; font-size: 11px; gap: 10px; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- ================= PAGE HEADER ================= -->
+<div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-6">
+  <div>
+    {% if user.is_authenticated %}
+    <h1 class="text-xl md:text-2xl font-bold text-slate-800">Welcome back, {{ user.mobile }}</h1>
+    {% endif %}
+    <p class="text-sm text-slate-500 mt-0.5">योजना तथा ठेक्का व्यवस्थापनको समग्र विवरण</p>
+  </div>
+  <span class="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 bg-white border border-slate-200 rounded-full px-3 py-1.5 self-start">
+    <i class="fas fa-calendar-day text-brand-500"></i> {% now "l, F j, Y" %}
+  </span>
+</div>
+
+<!-- ================= SUMMARY CARDS ================= -->
+<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+  <div class="bg-white rounded-2xl border border-slate-200 shadow-card p-5 flex items-center gap-4">
+    <div class="w-12 h-12 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center text-lg shrink-0">
+      <i class="fas fa-building"></i>
+    </div>
+    <div class="min-w-0">
+      <p class="text-2xl font-bold text-slate-800 leading-tight">{{ project_count }}</p>
+      <p class="text-xs text-slate-500">Projects</p>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-2xl border border-slate-200 shadow-card p-5 flex items-center gap-4">
+    <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg shrink-0">
+      <i class="fas fa-users"></i>
+    </div>
+    <div class="min-w-0">
+      <p class="text-2xl font-bold text-slate-800 leading-tight">{{ user_count }}</p>
+      <p class="text-xs text-slate-500">User Committees</p>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-2xl border border-slate-200 shadow-card p-5 flex items-center gap-4">
+    <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-lg shrink-0">
+      <i class="fas fa-list-check"></i>
+    </div>
+    <div class="min-w-0">
+      <p class="text-2xl font-bold text-slate-800 leading-tight">{{ estimated_count }}</p>
+      <p class="text-xs text-slate-500">Estimated Projects</p>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-2xl border border-slate-200 shadow-card p-5 flex items-center gap-4">
+    <div class="w-12 h-12 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center text-lg shrink-0">
+      <i class="fas fa-credit-card"></i>
+    </div>
+    <div class="min-w-0">
+      <p class="text-2xl font-bold text-slate-800 leading-tight">{{ final_valuation_count }}</p>
+      <p class="text-xs text-slate-500">Final Payments</p>
+    </div>
+  </div>
+</div>
+
+<!-- ================= CHART + RIGHT SIDE INFO ================= -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-4">
+
+  <!-- LEFT -->
+  <div class="lg:col-span-2 space-y-4">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-card">
+      <div class="px-4 py-3 border-b border-slate-100">
+        <h2 class="text-sm font-semibold text-slate-700">Fund Disbursement Trend (Last 12 Months)</h2>
+      </div>
+      <div class="chart-card-body">
+        <div class="chart-box-lg">
+          <canvas id="disbursementTrendChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-card">
+      <div class="px-4 py-3 border-b border-slate-100">
+        <h2 class="text-sm font-semibold text-slate-700">Financial Summary</h2>
+      </div>
+      <div class="chart-card-body grid grid-cols-1 lg:grid-cols-5 gap-4 items-center">
+        <div class="lg:col-span-3 grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div class="rounded-xl bg-rose-50 p-3">
+            <p class="text-xs text-rose-500 font-medium">Total Advance Paid</p>
+            <p class="text-base font-bold text-rose-700 mt-1">{{ total_advance_paid|floatformat:2 }}</p>
+          </div>
+          <div class="rounded-xl bg-brand-50 p-3">
+            <p class="text-xs text-brand-500 font-medium">Total Running Paid</p>
+            <p class="text-base font-bold text-brand-700 mt-1">{{ total_running_paid|floatformat:2 }}</p>
+          </div>
+          <div class="rounded-xl bg-emerald-50 p-3">
+            <p class="text-xs text-emerald-500 font-medium">Total Final Paid</p>
+            <p class="text-base font-bold text-emerald-700 mt-1">{{ total_final_paid|floatformat:2 }}</p>
+          </div>
+        </div>
+        <div class="lg:col-span-2 flex flex-col items-center">
+          <div class="chart-box w-full">
+            <canvas id="paymentTypeChart"></canvas>
+          </div>
+          <div class="flex items-center justify-center chart-legend-row text-slate-500">
+            <span class="inline-flex items-center gap-1"><span class="inline-block w-1.5 h-1.5 rounded-full bg-rose-500"></span>Advance</span>
+            <span class="inline-flex items-center gap-1"><span class="inline-block w-1.5 h-1.5 rounded-full bg-brand-500"></span>Running</span>
+            <span class="inline-flex items-center gap-1"><span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500"></span>Final</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-card">
+      <div class="px-4 py-3 border-b border-slate-100">
+        <h2 class="text-sm font-semibold text-slate-700">Bidding Pipeline</h2>
+      </div>
+      <div class="chart-card-body">
+        <div class="chart-box">
+          <canvas id="pipelineChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="space-y-4">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-card">
+      <div class="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
+        <i class="fas fa-triangle-exclamation text-rose-500"></i>
+        <h2 class="text-sm font-semibold text-slate-700">Critical Alerts</h2>
+      </div>
+      <div class="p-5 space-y-3 text-sm">
+        <div class="flex items-center justify-between">
+          <span class="text-slate-500"><span class="inline-block w-2 h-2 rounded-full bg-rose-500 mr-2"></span>Expired APG</span>
+          <span class="font-semibold text-slate-800">{{ expired_apg_count }}</span>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-slate-500"><span class="inline-block w-2 h-2 rounded-full bg-amber-500 mr-2"></span>APG Expiring (30 days)</span>
+          <span class="font-semibold text-slate-800">{{ expiring_apg_count }}</span>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-slate-500"><span class="inline-block w-2 h-2 rounded-full bg-orange-500 mr-2"></span>PG Expiring (30 days)</span>
+          <span class="font-semibold text-slate-800">{{ expiring_pg_count }}</span>
+        </div>
+        <div class="flex items-center justify-between pt-3 mt-1 border-t border-slate-100">
+          <span class="text-slate-500"><span class="inline-block w-2 h-2 rounded-full bg-rose-500 mr-2"></span>उपभोक्ता समिति म्याद नाघेको</span>
+          <span class="font-semibold text-slate-800">{{ usercommittee_expired_count }}</span>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-slate-500"><span class="inline-block w-2 h-2 rounded-full bg-amber-500 mr-2"></span>म्याद सकिन लाग्यो (३० दिन)</span>
+          <span class="font-semibold text-slate-800">{{ usercommittee_expiring_count }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-card">
+      <div class="px-4 py-3 border-b border-slate-100 flex items-center gap-2">
+        <i class="fas fa-chart-pie text-brand-500"></i>
+        <h2 class="text-sm font-semibold text-slate-700">Project Status</h2>
+      </div>
+      <div class="chart-card-body">
+        <div class="chart-box">
+          <canvas id="statusDonutChart"></canvas>
+        </div>
+        <div class="space-y-2 text-sm mt-3">
+          <div class="flex items-center justify-between">
+            <span class="text-slate-500"><span class="inline-block w-2 h-2 rounded-full bg-emerald-500 mr-2"></span>Completed</span>
+            <span class="font-semibold text-slate-800">{{ completed_projects }}</span>
+          </div>
+          <div class="flex items-center justify-between">
+            <span class="text-slate-500"><span class="inline-block w-2 h-2 rounded-full bg-brand-500 mr-2"></span>Ongoing</span>
+            <span class="font-semibold text-slate-800">{{ ongoing_projects }}</span>
+          </div>
+          <div class="flex items-center justify-between">
+            <span class="text-slate-500"><span class="inline-block w-2 h-2 rounded-full bg-slate-400 mr-2"></span>Open for Bids</span>
+            <span class="font-semibold text-slate-800">{{ open_projects }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-card">
+      <div class="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
+        <i class="fas fa-sack-dollar text-emerald-500"></i>
+        <h2 class="text-sm font-semibold text-slate-700">Fund Utilization</h2>
+      </div>
+      <div class="p-5">
+        <p class="text-2xl font-bold text-slate-800">{{ utilization_percent|floatformat:2 }}%</p>
+        <div class="w-full h-2 rounded-full bg-slate-100 mt-3 overflow-hidden">
+          <div class="h-full bg-emerald-500 rounded-full" style="width: {{ utilization_percent|floatformat:0 }}%"></div>
+        </div>
+        <p class="text-xs text-slate-400 mt-2">Final payment vs total budget</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= LATEST USER COMMITTEES ================= -->
+<div class="bg-white rounded-2xl border border-slate-200 shadow-card mt-4">
+  <div class="px-5 py-4 border-b border-slate-100">
+    <h2 class="text-sm font-semibold text-slate-700">Latest User Committees</h2>
+  </div>
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="text-left text-xs uppercase tracking-wide text-slate-500 bg-slate-50">
+          <th class="px-5 py-3 font-medium">Project</th>
+          <th class="px-5 py-3 font-medium">Committee</th>
+          <th class="px-5 py-3 font-medium">Chairperson</th>
+          <th class="px-5 py-3 font-medium">Total Cost</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% for uc in latest_user_committees %}
+        <tr class="hover:bg-slate-50">
+          <td class="px-5 py-3 text-slate-700">{{ uc.project.name }}</td>
+          <td class="px-5 py-3 text-slate-700">{{ uc.name }}</td>
+          <td class="px-5 py-3 text-slate-700">{{ uc.chairman_name }}</td>
+          <td class="px-5 py-3 text-slate-700">
+            {% if uc.project.cost_estimate %}{{ uc.project.cost_estimate.total_cost|floatformat:2 }}{% else %}N/A{% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="4" class="px-5 py-6 text-center text-slate-400">No data</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ================= APG EXPIRING SOON ================= -->
+<div class="bg-white rounded-2xl border border-slate-200 shadow-card mt-4">
+  <div class="px-5 py-4 border-b border-slate-100">
+    <h2 class="text-sm font-semibold text-slate-700">Advance Bank Guarantees Expiring Soon</h2>
+  </div>
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="text-left text-xs uppercase tracking-wide text-slate-500 bg-slate-50">
+          <th class="px-5 py-3 font-medium">Project</th>
+          <th class="px-5 py-3 font-medium">Bidder</th>
+          <th class="px-5 py-3 font-medium">Bank</th>
+          <th class="px-5 py-3 font-medium">Expiry</th>
+          <th class="px-5 py-3 font-medium">Days Left</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% for apg in latest_advance_guarantees %}
+        <tr class="hover:bg-slate-50">
+          <td class="px-5 py-3 text-slate-700">{{ apg.advance_payment.contract.sealed_bid.project.name }}</td>
+          <td class="px-5 py-3 text-slate-700">{{ apg.advance_payment.contract.sealed_bid.bidder_name_nepali|default:"....." }}</td>
+          <td class="px-5 py-3 text-slate-700">{{ apg.bank_name }}</td>
+          <td class="px-5 py-3 text-slate-700">{{ apg.expiry_date }}</td>
+          <td class="px-5 py-3">
+            {% if apg.days_left <= 7 %}
+            <span class="inline-flex items-center rounded-full bg-rose-50 text-rose-600 text-xs font-medium px-2.5 py-1">{{ apg.days_left }} days</span>
+            {% else %}
+            <span class="inline-flex items-center rounded-full bg-amber-50 text-amber-600 text-xs font-medium px-2.5 py-1">{{ apg.days_left }} days</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" class="px-5 py-6 text-center text-slate-400">No expiring APG</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ================= PG EXPIRING SOON ================= -->
+<div class="bg-white rounded-2xl border border-slate-200 shadow-card mt-4 mb-2">
+  <div class="px-5 py-4 border-b border-slate-100">
+    <h2 class="text-sm font-semibold text-slate-700">Performance Bonds Expiring Soon</h2>
+  </div>
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="text-left text-xs uppercase tracking-wide text-slate-500 bg-slate-50">
+          <th class="px-5 py-3 font-medium">Project</th>
+          <th class="px-5 py-3 font-medium">Bank</th>
+          <th class="px-5 py-3 font-medium">Expiry</th>
+          <th class="px-5 py-3 font-medium">Days Left</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% for pg in latest_performance_bonds %}
+        <tr class="hover:bg-slate-50">
+          <td class="px-5 py-3 text-slate-700">{{ pg.contract.sealed_bid.project.name }}</td>
+          <td class="px-5 py-3 text-slate-700">{{ pg.bank_name }}</td>
+          <td class="px-5 py-3 text-slate-700">{{ pg.expiry_date }}</td>
+          <td class="px-5 py-3">
+            {% if pg.days_left <= 7 %}
+            <span class="inline-flex items-center rounded-full bg-rose-50 text-rose-600 text-xs font-medium px-2.5 py-1">{{ pg.days_left }} days</span>
+            {% else %}
+            <span class="inline-flex items-center rounded-full bg-amber-50 text-amber-600 text-xs font-medium px-2.5 py-1">{{ pg.days_left }} days</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="4" class="px-5 py-6 text-center text-slate-400">No expiring PG</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ================= उपभोक्ता समिति म्याद अलर्ट ================= -->
+<div class="bg-white rounded-2xl border border-slate-200 shadow-card mt-4 mb-2">
+  <div class="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
+    <i class="fas fa-hourglass-end text-rose-500"></i>
+    <h2 class="text-sm font-semibold text-slate-700">उपभोक्ता समिति म्याद अलर्ट (नाघेका / सकिन लागेका)</h2>
+  </div>
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="text-left text-xs uppercase tracking-wide text-slate-500 bg-slate-50">
+          <th class="px-5 py-3 font-medium">योजना</th>
+          <th class="px-5 py-3 font-medium">उपभोक्ता समिति</th>
+          <th class="px-5 py-3 font-medium">वडा</th>
+          <th class="px-5 py-3 font-medium">म्याद</th>
+          <th class="px-5 py-3 font-medium">बाँकी/नाघेको दिन</th>
+          <th class="px-5 py-3 font-medium">कार्य</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        {% for uc in usercommittee_deadline_alerts %}
+        <tr class="hover:bg-slate-50">
+          <td class="px-5 py-3 text-slate-700">{{ uc.project.name }}</td>
+          <td class="px-5 py-3 text-slate-700">{{ uc.name }}</td>
+          <td class="px-5 py-3 text-slate-700">{{ uc.project.ward.name|default:"—" }}</td>
+          <td class="px-5 py-3 text-slate-700">{{ uc.deadline }}</td>
+          <td class="px-5 py-3">
+            {% if uc.days_left < 0 %}
+            <span class="inline-flex items-center rounded-full bg-rose-50 text-rose-600 text-xs font-medium px-2.5 py-1">{{ uc.days_left_abs }} दिन नाघेको</span>
+            {% elif uc.days_left <= 7 %}
+            <span class="inline-flex items-center rounded-full bg-rose-50 text-rose-600 text-xs font-medium px-2.5 py-1">{{ uc.days_left }} दिन बाँकी</span>
+            {% else %}
+            <span class="inline-flex items-center rounded-full bg-amber-50 text-amber-600 text-xs font-medium px-2.5 py-1">{{ uc.days_left }} दिन बाँकी</span>
+            {% endif %}
+          </td>
+          <td class="px-5 py-3">
+            <a href="{% url 'extend_usercommittee_date' uc.id %}" class="btn-chip-brand"><i class="fas fa-calendar-plus"></i> म्याद थप्नुहोस्</a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" class="px-5 py-6 text-center text-slate-400">हाल कुनै उपभोक्ता समितिको म्याद नाघेको/सकिन लागेको छैन</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block script %}
+<script>
+// ---- Shared brand colors, kept consistent with the stat tiles / legend dots
+// used elsewhere on this dashboard (same entity => same color everywhere). ----
+const COLOR_ADVANCE = '#f43f5e';   // rose-500   (Advance Paid)
+const COLOR_RUNNING = '#3b76f6';   // brand-500  (Running Paid)
+const COLOR_FINAL = '#10b981';     // emerald-500 (Final Paid)
+const COLOR_COMPLETED = '#10b981'; // emerald-500
+const COLOR_ONGOING = '#3b76f6';   // brand-500
+const COLOR_OPEN = '#94a3b8';      // slate-400
+
+// ================= 1) FUND DISBURSEMENT TREND (line) =================
+new Chart(document.getElementById('disbursementTrendChart'), {
+  type: 'line',
+  data: {
+    labels: {{ trend_labels_json|safe }},
+    datasets: [
+      {
+        label: 'Advance',
+        data: {{ trend_advance_json|safe }},
+        borderColor: COLOR_ADVANCE,
+        backgroundColor: COLOR_ADVANCE + '1a',
+        tension: 0.3,
+        fill: true,
+        pointRadius: 2,
+        pointHoverRadius: 4,
+        borderWidth: 2,
+      },
+      {
+        label: 'Running',
+        data: {{ trend_running_json|safe }},
+        borderColor: COLOR_RUNNING,
+        backgroundColor: COLOR_RUNNING + '1a',
+        tension: 0.3,
+        fill: true,
+        pointRadius: 2,
+        pointHoverRadius: 4,
+        borderWidth: 2,
+      },
+      {
+        label: 'Final',
+        data: {{ trend_final_json|safe }},
+        borderColor: COLOR_FINAL,
+        backgroundColor: COLOR_FINAL + '1a',
+        tension: 0.3,
+        fill: true,
+        pointRadius: 2,
+        pointHoverRadius: 4,
+        borderWidth: 2,
+      },
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
+    layout: { padding: 0 },
+    plugins: {
+      legend: {
+        position: 'bottom',
+        labels: { usePointStyle: true, boxWidth: 6, font: { size: 10 }, padding: 8 },
+      },
+      tooltip: { mode: 'index', intersect: false },
+    },
+    scales: {
+      y: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { font: { size: 10 } } },
+      x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+    }
+  }
+});
+
+// ================= 2) PAYMENT TYPE BREAKDOWN (donut) =================
+new Chart(document.getElementById('paymentTypeChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Advance', 'Running', 'Final'],
+    datasets: [{
+      data: [{{ total_advance_paid }}, {{ total_running_paid }}, {{ total_final_paid }}],
+      backgroundColor: [COLOR_ADVANCE, COLOR_RUNNING, COLOR_FINAL],
+      borderColor: '#ffffff',
+      borderWidth: 2,
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    cutout: '65%',
+    plugins: { legend: { display: false } }
+  }
+});
+
+// ================= 3) PROJECT STATUS (donut) =================
+new Chart(document.getElementById('statusDonutChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Completed', 'Ongoing', 'Open for Bids'],
+    datasets: [{
+      data: [{{ completed_projects }}, {{ ongoing_projects }}, {{ open_projects }}],
+      backgroundColor: [COLOR_COMPLETED, COLOR_ONGOING, COLOR_OPEN],
+      borderColor: '#ffffff',
+      borderWidth: 2,
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    cutout: '65%',
+    plugins: { legend: { display: false } }
+  }
+});
+
+// ================= 4) BIDDING PIPELINE (horizontal bar, sequential ramp) =================
+// A single ordered measure (bid count per pipeline stage) -> one hue, light to dark,
+// so the ramp itself reads as progression through the pipeline.
+new Chart(document.getElementById('pipelineChart'), {
+  type: 'bar',
+  data: {
+    labels: {{ bidding_pipeline_labels_json|safe }},
+    datasets: [{
+      data: {{ bidding_pipeline_counts_json|safe }},
+      backgroundColor: ['#dbeafe', '#93c5fd', '#60a5fa', '#3b76f6', '#1d4ed8'],
+      borderRadius: 4,
+      barPercentage: 0.7,
+      categoryPercentage: 0.7,
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    indexAxis: 'y',
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { precision: 0, font: { size: 10 } } },
+      y: { grid: { display: false }, ticks: { font: { size: 10 } } },
+    }
+  }
+});
+</script>
+{% endblock %}

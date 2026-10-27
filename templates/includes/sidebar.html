@@ -1,0 +1,413 @@
+{% load static %}
+<!-- ===================== SIDEBAR ===================== -->
+<aside id="sidebar"
+       class="fixed inset-y-0 left-0 z-40 w-64 bg-navy text-slate-300 flex flex-col
+              -translate-x-full md:translate-x-0 md:fixed">
+
+  <!-- Brand -->
+  <div class="h-16 flex items-center gap-3 px-4 shrink-0">
+    <img src="{% if palika.logo %}{{ palika.logo.url }}{% else %}{% static 'assets/img/logonepal.png' %}{% endif %}" class="w-9 h-9 rounded-lg bg-white p-0.5 shrink-0 object-contain" alt="Logo">
+    <div class="sidebar-brand-text min-w-0">
+      <p class="text-[13px] font-semibold text-white leading-tight truncate">{{ palika.full_name }}</p>
+      <p class="text-[11px] text-slate-300/80 leading-tight truncate mt-0.5">{{ palika.office_name|default:palika.executive_office }}</p>
+    </div>
+  </div>
+
+  <nav class="flex-1 overflow-y-auto slim-scroll pt-3 pb-3 px-2.5">
+    <p class="sidebar-section-label px-2.5 mb-1.5 text-[11px] font-medium text-slate-400">Platform</p>
+    {% with current=request.resolver_match.url_name %}
+
+    {% if user.user_type == '1' %}
+    <ul class="space-y-0.5">
+
+      <li>
+        <a href="{% url 'admin_home' %}"
+           class="nav-link-item {% if current == 'admin_home' %}active{% endif %}">
+          <i data-lucide="layout-dashboard" class="nav-icon"></i>
+          <span class="sidebar-label">ड्यासबोर्ड</span>
+        </a>
+      </li>
+
+      <li>
+        <a href="{% url 'add_project' %}"
+           class="nav-link-item {% if current == 'add_project' %}active{% endif %}">
+          <i data-lucide="folder-plus" class="nav-icon"></i>
+          <span class="sidebar-label">योजना अभिलेखिकरण</span>
+        </a>
+      </li>
+
+      {% comment %} उपभोक्ता समिति: one page; every step is started from its workflow {% endcomment %}
+      <li>
+        <a href="{% url 'usercommittee_workflow' %}"
+           class="nav-link-item {% if current in 'usercommittee_workflow,view_projects,view_usercommittee,view_usercommittee_payments,add_usercommittee,add_usercommittee_for_project,add_cost_estimate,add_cost_estimate_for_project,view_estimated_projects,add_final_valuation,edit_final_valuation,view_final_valuation,edit_usercommittee,extend_usercommittee_date' %}active{% endif %}">
+          <i data-lucide="users" class="nav-icon"></i>
+          <span class="sidebar-label">उपभोक्ता समिति</span>
+        </a>
+      </li>
+
+      {% comment %} बोलपत्र ठेक्का व्यवस्थापन {% endcomment %}
+      <li class="sidebar-group">
+        <button type="button" onclick="toggleSubmenu(this)"
+                class="nav-link-item w-full">
+          <i data-lucide="file-text" class="nav-icon"></i>
+          <span class="sidebar-label flex-1 text-left">बोलपत्र ठेक्का व्यवस्थापन</span>
+          <i data-lucide="chevron-right" class="menu-arrow"></i>
+        </button>
+        <ul class="submenu-panel {% if current not in 'add_bid_detail,view_bid_detail,view_approved_projects,view_agreement_projects,add_advance_payment,add_running_evaluation,add_final_payment' %}hidden{% endif %} mt-1 ml-5 pl-3 border-l border-white/10 space-y-0.5">
+          <li><a href="{% url 'add_bid_detail' %}" class="submenu-link {% if current == 'add_bid_detail' %}active{% endif %}"><i data-lucide="plus" class="sub-icon"></i><span>ठेक्काको विवरण प्रवेष्ठी</span></a></li>
+          <li><a href="{% url 'view_bid_detail' %}" class="submenu-link {% if current == 'view_bid_detail' %}active{% endif %}"><i data-lucide="eye" class="sub-icon"></i><span>आसय र PG माग</span></a></li>
+          <li><a href="{% url 'view_approved_projects' %}" class="submenu-link {% if current == 'view_approved_projects' %}active{% endif %}"><i data-lucide="circle-check" class="sub-icon"></i><span>स्वीकृती बोलपत्र विवरण</span></a></li>
+          <li><a href="{% url 'view_agreement_projects' %}" class="submenu-link {% if current == 'view_agreement_projects' %}active{% endif %}"><i data-lucide="handshake" class="sub-icon"></i><span>सम्झौता र कार्यदेश</span></a></li>
+          <li><a href="{% url 'add_advance_payment' %}" class="submenu-link {% if current == 'add_advance_payment' %}active{% endif %}"><i data-lucide="wallet" class="sub-icon"></i><span>अग्रिम पेश्की भुक्तानी</span></a></li>
+          <li><a href="{% url 'add_running_evaluation' %}" class="submenu-link {% if current == 'add_running_evaluation' %}active{% endif %}"><i data-lucide="wallet" class="sub-icon"></i><span>रनिङ विल भुक्तानी</span></a></li>
+          <li><a href="{% url 'add_final_payment' %}" class="submenu-link {% if current == 'add_final_payment' %}active{% endif %}"><i data-lucide="wallet" class="sub-icon"></i><span>अन्तिम भुक्तानी</span></a></li>
+        </ul>
+      </li>
+
+      {% comment %} दरभाउपत्र खरिद व्यवस्थापन {% endcomment %}
+      <li class="sidebar-group">
+        <button type="button" onclick="toggleSubmenu(this)"
+                class="nav-link-item w-full">
+          <i data-lucide="clipboard-list" class="nav-icon"></i>
+          <span class="sidebar-label flex-1 text-left">दरभाउपत्र खरिद व्यवस्थापन</span>
+          <i data-lucide="chevron-right" class="menu-arrow"></i>
+        </button>
+        <ul class="submenu-panel {% if current not in 'add_suchikrit_list,view_suchikrit_list,invite_quatation,view_quatation_projects,add_quatation_final_payment_sidebar,view_quatation_final_payment_sidebar' %}hidden{% endif %} mt-1 ml-5 pl-3 border-l border-white/10 space-y-0.5">
+          <li><a href="{% url 'add_suchikrit_list' %}" class="submenu-link {% if current == 'add_suchikrit_list' %}active{% endif %}"><i data-lucide="user-check" class="sub-icon"></i><span>सिचिकृत गर्नुहोस</span></a></li>
+          <li><a href="{% url 'view_suchikrit_list' %}" class="submenu-link {% if current == 'view_suchikrit_list' %}active{% endif %}"><i data-lucide="list-checks" class="sub-icon"></i><span>सिचिकृत विवरण</span></a></li>
+          <li><a href="{% url 'invite_quatation' %}" class="submenu-link {% if current == 'invite_quatation' %}active{% endif %}"><i data-lucide="mail-open" class="sub-icon"></i><span>प्रस्ताव माग गर्नुहोस</span></a></li>
+          <li><a href="{% url 'view_quatation_projects' %}" class="submenu-link {% if current == 'view_quatation_projects' %}active{% endif %}"><i data-lucide="clipboard-check" class="sub-icon"></i><span>प्रस्ताव विवरण</span></a></li>
+          <li><a href="{% url 'add_quatation_final_payment_sidebar' %}" class="submenu-link {% if current == 'add_quatation_final_payment_sidebar' %}active{% endif %}"><i data-lucide="indian-rupee" class="sub-icon"></i><span>अन्तिम विल प्रवेष्टी</span></a></li>
+          <li><a href="{% url 'view_quatation_final_payment_sidebar' %}" class="submenu-link {% if current == 'view_quatation_final_payment_sidebar' %}active{% endif %}"><i data-lucide="chart-column" class="sub-icon"></i><span>अन्तिम विल विवरणहरु</span></a></li>
+        </ul>
+      </li>
+
+
+
+      {% comment %} बोलपत्र सम्बन्धी प्रतिबेदनहरु {% endcomment %}
+      <li class="sidebar-group">
+        <button type="button" onclick="toggleSubmenu(this)"
+                class="nav-link-item w-full">
+          <i data-lucide="chart-line" class="nav-icon"></i>
+          <span class="sidebar-label flex-1 text-left">बोलपत्र सम्बन्धी प्रतिबेदनहरु</span>
+          <i data-lucide="chevron-right" class="menu-arrow"></i>
+        </button>
+        <ul class="submenu-panel {% if current not in 'view_advance_payment,view_running_evaluations,view_final_payment' %}hidden{% endif %} mt-1 ml-5 pl-3 border-l border-white/10 space-y-0.5">
+          <li><a href="{% url 'view_advance_payment' %}" class="submenu-link {% if current == 'view_advance_payment' %}active{% endif %}"><i data-lucide="list" class="sub-icon"></i><span>अग्रिम पेश्की भुक्तानी विवरण</span></a></li>
+          <li><a href="{% url 'view_running_evaluations' %}" class="submenu-link {% if current == 'view_running_evaluations' %}active{% endif %}"><i data-lucide="list" class="sub-icon"></i><span>रनिङ विल भुक्तानी विवरण</span></a></li>
+          <li><a href="{% url 'view_final_payment' %}" class="submenu-link {% if current == 'view_final_payment' %}active{% endif %}"><i data-lucide="list" class="sub-icon"></i><span>अन्तिम विल भुक्तानी विवरण</span></a></li>
+        </ul>
+      </li>
+
+
+      {% comment %} पालिका स्तरीय प्रतिवेदनहरू (सबै वडा) {% endcomment %}
+      <li class="sidebar-group">
+        <button type="button" onclick="toggleSubmenu(this)"
+                class="nav-link-item w-full">
+          <i data-lucide="chart-pie" class="nav-icon"></i>
+          <span class="sidebar-label flex-1 text-left">पालिका स्तरीय प्रतिवेदनहरू</span>
+          <i data-lucide="chevron-right" class="menu-arrow"></i>
+        </button>
+        <ul class="submenu-panel {% if current not in 'palika_engineer_project_list,palika_engineer_project_detail,palika_engineer_estimated_projects,palika_engineer_ward_comparison,palika_engineer_committee_list,palika_engineer_final_valuations,palika_engineer_committee_financial_report' %}hidden{% endif %} mt-1 ml-5 pl-3 border-l border-white/10 space-y-0.5">
+          <li><a href="{% url 'palika_engineer_project_list' %}" class="submenu-link {% if current == 'palika_engineer_project_list' %}active{% endif %}"><i data-lucide="clipboard-list" class="sub-icon"></i><span>सबै योजनाहरू (सबै वडा)</span></a></li>
+          <li><a href="{% url 'palika_engineer_estimated_projects' %}" class="submenu-link {% if current == 'palika_engineer_estimated_projects' %}active{% endif %}"><i data-lucide="receipt" class="sub-icon"></i><span>लागत अनुमान प्रतिवेदन</span></a></li>
+          <li><a href="{% url 'palika_engineer_ward_comparison' %}" class="submenu-link {% if current == 'palika_engineer_ward_comparison' %}active{% endif %}"><i data-lucide="scale" class="sub-icon"></i><span>वडा अनुसार तुलना</span></a></li>
+          <li><a href="{% url 'palika_engineer_committee_list' %}" class="submenu-link {% if current == 'palika_engineer_committee_list' %}active{% endif %}"><i data-lucide="users" class="sub-icon"></i><span>उपभोक्ता समिति सूची</span></a></li>
+          <li><a href="{% url 'palika_engineer_final_valuations' %}" class="submenu-link {% if current == 'palika_engineer_final_valuations' %}active{% endif %}"><i data-lucide="banknote" class="sub-icon"></i><span>अन्तिम मूल्याङ्कन (सबै वडा)</span></a></li>
+          <li><a href="{% url 'palika_engineer_committee_financial_report' %}" class="submenu-link {% if current == 'palika_engineer_committee_financial_report' %}active{% endif %}"><i data-lucide="chart-column" class="sub-icon"></i><span>समिति वित्तीय प्रतिवेदन</span></a></li>
+        </ul>
+      </li>
+
+            {% comment %} बैंक ग्यारेन्टी व्यवस्थापन {% endcomment %}
+      <li class="sidebar-group">
+        <button type="button" onclick="toggleSubmenu(this)"
+                class="nav-link-item w-full">
+          <i data-lucide="landmark" class="nav-icon"></i>
+          <span class="sidebar-label flex-1 text-left">बैंक ग्यारेन्टी व्यवस्थापन</span>
+          <i data-lucide="chevron-right" class="menu-arrow"></i>
+        </button>
+        <ul class="submenu-panel {% if current not in 'view_performance_bank_guarantees,view_advance_bank_guarantees' %}hidden{% endif %} mt-1 ml-5 pl-3 border-l border-white/10 space-y-0.5">
+          <li><a href="{% url 'view_performance_bank_guarantees' %}" class="submenu-link {% if current == 'view_performance_bank_guarantees' %}active{% endif %}"><i data-lucide="banknote" class="sub-icon"></i><span>Performance Bond</span></a></li>
+          <li><a href="{% url 'view_advance_bank_guarantees' %}" class="submenu-link {% if current == 'view_advance_bank_guarantees' %}active{% endif %}"><i data-lucide="search" class="sub-icon"></i><span>Advance Payment Guarantee</span></a></li>
+        </ul>
+      </li>
+
+      {% comment %} सेटिङ {% endcomment %}
+      <li class="sidebar-group">
+        <button type="button" onclick="toggleSubmenu(this)"
+                class="nav-link-item w-full">
+          <i data-lucide="settings" class="nav-icon"></i>
+          <span class="sidebar-label flex-1 text-left">सेटिङ</span>
+          <i data-lucide="chevron-right" class="menu-arrow"></i>
+        </button>
+        <ul class="submenu-panel {% if current not in 'add_staff,manage_staff,roles_permissions,uc_approvers,office_settings,letter_templates,tax_heads,manage_fiscal_years,edit_fiscal_year,manage_budget_types,edit_budget_type,manage_procurement_types,edit_procurement_type' %}hidden{% endif %} mt-1 ml-5 pl-3 border-l border-white/10 space-y-0.5">
+          <li><a href="{% url 'add_staff' %}" class="submenu-link {% if current == 'add_staff' %}active{% endif %}"><i data-lucide="user-plus" class="sub-icon"></i><span>कर्मचारी थप्नुहोस</span></a></li>
+          <li><a href="{% url 'manage_staff' %}" class="submenu-link {% if current == 'manage_staff' %}active{% endif %}"><i data-lucide="key-round" class="sub-icon"></i><span>कर्मचारी व्यवस्थापन</span></a></li>
+          {% if 'settings.office' in me.perms %}<li><a href="{% url 'office_settings' %}" class="submenu-link {% if current == 'office_settings' %}active{% endif %}"><i data-lucide="building-2" class="sub-icon"></i><span>कार्यालय सेटिङ</span></a></li>{% endif %}
+          {% if 'settings.tax' in me.perms %}<li><a href="{% url 'tax_heads' %}" class="submenu-link {% if current == 'tax_heads' %}active{% endif %}"><i data-lucide="receipt" class="sub-icon"></i><span>कर शीर्षक</span></a></li>{% endif %}
+          {% if 'letters.templates' in me.perms %}<li><a href="{% url 'letter_templates' %}" class="submenu-link {% if current == 'letter_templates' %}active{% endif %}"><i data-lucide="file-pen-line" class="sub-icon"></i><span>पत्रका ढाँचा</span></a></li>{% endif %}
+          {% if 'settings.roles' in me.perms %}<li><a href="{% url 'roles_permissions' %}" class="submenu-link {% if current == 'roles_permissions' %}active{% endif %}"><i data-lucide="shield-check" class="sub-icon"></i><span>भूमिका र अनुमति</span></a></li>{% endif %}
+          {% if 'uc.delegate' in me.perms %}<li><a href="{% url 'uc_approvers' %}" class="submenu-link {% if current == 'uc_approvers' %}active{% endif %}"><i data-lucide="stamp" class="sub-icon"></i><span>स्वीकृत गर्ने अधिकारी</span></a></li>{% endif %}
+          <li><a href="javascript:void(0)" class="submenu-link"><i data-lucide="network" class="sub-icon"></i><span>शाखा थप्नुहोस</span></a></li>
+          <li><a href="{% url 'manage_fiscal_years' %}" class="submenu-link {% if current == 'manage_fiscal_years' or current == 'edit_fiscal_year' %}active{% endif %}"><i data-lucide="calendar-days" class="sub-icon"></i><span>आर्थिक वर्ष</span></a></li>
+          <li><a href="{% url 'manage_budget_types' %}" class="submenu-link {% if current == 'manage_budget_types' or current == 'edit_budget_type' %}active{% endif %}"><i data-lucide="coins" class="sub-icon"></i><span>बजेट प्रकार</span></a></li>
+          <li><a href="{% url 'manage_procurement_types' %}" class="submenu-link {% if current == 'manage_procurement_types' or current == 'edit_procurement_type' %}active{% endif %}"><i data-lucide="file-text" class="sub-icon"></i><span>खरिद प्रकार</span></a></li>
+        </ul>
+      </li>
+
+      {% comment %} गतिविधि लग (Admin मात्र) {% endcomment %}
+      <li>
+        <a href="{% url 'activity_log' %}"
+           class="nav-link-item {% if current == 'activity_log' %}active{% endif %}">
+          <i data-lucide="history" class="nav-icon"></i>
+          <span class="sidebar-label">गतिविधि लग</span>
+        </a>
+      </li>
+    </ul>
+
+    {% elif user.user_type == '4' %}
+    <ul class="space-y-0.5">
+      <li>
+        <a href="{% url 'engineer_home' %}"
+           class="nav-link-item {% if current == 'engineer_home' %}active{% endif %}">
+          <i data-lucide="layout-dashboard" class="nav-icon"></i>
+          <span class="sidebar-label">ड्यासबोर्ड</span>
+        </a>
+      </li>
+      <li>
+        <a href="{% url 'usercommittee_workflow' %}"
+           class="nav-link-item {% if current == 'usercommittee_workflow' %}active{% endif %}">
+          <i data-lucide="route" class="nav-icon"></i>
+          <span class="sidebar-label">उपभोक्ता समिति</span>
+        </a>
+      </li>
+
+      <li class="sidebar-group">
+        <button type="button" onclick="toggleSubmenu(this)"
+                class="nav-link-item w-full">
+          <i data-lucide="settings-2" class="nav-icon"></i>
+          <span class="sidebar-label flex-1 text-left">योजना व्यवस्थापन</span>
+          <i data-lucide="chevron-right" class="menu-arrow"></i>
+        </button>
+        <ul class="submenu-panel {% if current not in 'view_projects_engineer,view_usercommittee_engineer,view_advance_bank_guarantees_engineer,view_performance_bank_guarantees_engineer' %}hidden{% endif %} mt-1 ml-5 pl-3 border-l border-white/10 space-y-0.5">
+          <li><a href="{% url 'view_projects_engineer' %}" class="submenu-link {% if current == 'view_projects_engineer' %}active{% endif %}"><i data-lucide="clipboard" class="sub-icon"></i><span>योजनाको विवरण</span></a></li>
+          <li><a href="{% url 'view_usercommittee_engineer' %}" class="submenu-link {% if current == 'view_usercommittee_engineer' %}active{% endif %}"><i data-lucide="list" class="sub-icon"></i><span>उपभोक्ता समितको विवरण</span></a></li>
+          <li><a href="{% url 'view_advance_bank_guarantees_engineer' %}" class="submenu-link {% if current == 'view_advance_bank_guarantees_engineer' %}active{% endif %}"><i data-lucide="list" class="sub-icon"></i><span>APG को विवरण</span></a></li>
+          <li><a href="{% url 'view_performance_bank_guarantees_engineer' %}" class="submenu-link {% if current == 'view_performance_bank_guarantees_engineer' %}active{% endif %}"><i data-lucide="list" class="sub-icon"></i><span>PG को विवरण</span></a></li>
+        </ul>
+      </li>
+    </ul>
+
+    {% elif user.user_type == '6' %}
+    <ul class="space-y-0.5">
+      <li>
+        <a href="{% url 'ward_sachib_home' %}"
+           class="nav-link-item {% if current == 'ward_sachib_home' %}active{% endif %}">
+          <i data-lucide="layout-dashboard" class="nav-icon"></i>
+          <span class="sidebar-label">ड्यासबोर्ड</span>
+        </a>
+      </li>
+      <li>
+        <a href="{% url 'usercommittee_workflow' %}"
+           class="nav-link-item {% if current == 'usercommittee_workflow' %}active{% endif %}">
+          <i data-lucide="route" class="nav-icon"></i>
+          <span class="sidebar-label">उपभोक्ता समिति</span>
+        </a>
+      </li>
+
+      <li>
+        <a href="{% url 'ward_project_list' %}"
+           class="nav-link-item {% if current == 'ward_project_list' %}active{% endif %}">
+          <i data-lucide="clipboard-list" class="nav-icon"></i>
+          <span class="sidebar-label">वडाका योजनाहरू</span>
+        </a>
+      </li>
+
+      <li>
+        <a href="{% url 'view_projects_for_recommendation' %}"
+           class="nav-link-item {% if current == 'view_projects_for_recommendation' %}active{% endif %}">
+          <i data-lucide="file-signature" class="nav-icon"></i>
+          <span class="sidebar-label">सिफारिस तयार गर्नुहोस</span>
+        </a>
+      </li>
+
+      <li>
+        <a href="{% url 'view_projects_for_completion_recommendation' %}"
+           class="nav-link-item {% if current == 'view_projects_for_completion_recommendation' %}active{% endif %}">
+          <i data-lucide="flag" class="nav-icon"></i>
+          <span class="sidebar-label">काम सम्पन्न सिफारिस</span>
+        </a>
+      </li>
+    </ul>
+
+    {% elif user.user_type == '3' %}
+    <ul class="space-y-0.5">
+
+      <li>
+        <a href="{% url 'planning_home' %}"
+           class="nav-link-item {% if current == 'planning_home' %}active{% endif %}">
+          <i data-lucide="layout-dashboard" class="nav-icon"></i>
+          <span class="sidebar-label">ड्यासबोर्ड</span>
+        </a>
+      </li>
+
+      {% comment %} उपभोक्ता समिति: one page; every step is started from its workflow {% endcomment %}
+      <li>
+        <a href="{% url 'usercommittee_workflow' %}"
+           class="nav-link-item {% if current in 'usercommittee_workflow,view_projects,view_usercommittee,view_usercommittee_payments,add_usercommittee,add_usercommittee_for_project,add_cost_estimate,add_cost_estimate_for_project,view_estimated_projects,add_final_valuation,edit_final_valuation,view_final_valuation,edit_usercommittee,extend_usercommittee_date' %}active{% endif %}">
+          <i data-lucide="users" class="nav-icon"></i>
+          <span class="sidebar-label">उपभोक्ता समिति</span>
+        </a>
+      </li>
+    </ul>
+
+    {% elif user.user_type == '7' %}
+    <ul class="space-y-0.5">
+      <li>
+        <a href="{% url 'ward_engineer_home' %}"
+           class="nav-link-item {% if current == 'ward_engineer_home' %}active{% endif %}">
+          <i data-lucide="layout-dashboard" class="nav-icon"></i>
+          <span class="sidebar-label">ड्यासबोर्ड</span>
+        </a>
+      </li>
+      <li>
+        <a href="{% url 'usercommittee_workflow' %}"
+           class="nav-link-item {% if current == 'usercommittee_workflow' %}active{% endif %}">
+          <i data-lucide="route" class="nav-icon"></i>
+          <span class="sidebar-label">उपभोक्ता समिति</span>
+        </a>
+      </li>
+
+      <li>
+        <a href="{% url 'ward_engineer_project_list' %}"
+           class="nav-link-item {% if current == 'ward_engineer_project_list' %}active{% endif %}">
+          <i data-lucide="clipboard-list" class="nav-icon"></i>
+          <span class="sidebar-label">वडाका योजनाहरू</span>
+        </a>
+      </li>
+    </ul>
+
+    {% elif user.user_type == '8' %}
+    <ul class="space-y-0.5">
+      <li>
+        <a href="{% url 'palika_engineer_home' %}"
+           class="nav-link-item {% if current == 'palika_engineer_home' %}active{% endif %}">
+          <i data-lucide="layout-dashboard" class="nav-icon"></i>
+          <span class="sidebar-label">ड्यासबोर्ड</span>
+        </a>
+      </li>
+      <li>
+        <a href="{% url 'usercommittee_workflow' %}"
+           class="nav-link-item {% if current == 'usercommittee_workflow' %}active{% endif %}">
+          <i data-lucide="route" class="nav-icon"></i>
+          <span class="sidebar-label">उपभोक्ता समिति</span>
+        </a>
+      </li>
+
+      <li>
+        <a href="{% url 'palika_engineer_project_list' %}"
+           class="nav-link-item {% if current == 'palika_engineer_project_list' %}active{% endif %}">
+          <i data-lucide="clipboard-list" class="nav-icon"></i>
+          <span class="sidebar-label">सबै योजनाहरू</span>
+        </a>
+      </li>
+
+      <li>
+        <a href="{% url 'palika_engineer_estimated_projects' %}"
+           class="nav-link-item {% if current == 'palika_engineer_estimated_projects' %}active{% endif %}">
+          <i data-lucide="receipt" class="nav-icon"></i>
+          <span class="sidebar-label">लागत अनुमान प्रतिवेदन</span>
+        </a>
+      </li>
+
+      <li>
+        <a href="{% url 'palika_engineer_ward_comparison' %}"
+           class="nav-link-item {% if current == 'palika_engineer_ward_comparison' %}active{% endif %}">
+          <i data-lucide="scale" class="nav-icon"></i>
+          <span class="sidebar-label">वडा अनुसार तुलना</span>
+        </a>
+      </li>
+
+      <li>
+        <a href="{% url 'palika_engineer_committee_list' %}"
+           class="nav-link-item {% if current == 'palika_engineer_committee_list' %}active{% endif %}">
+          <i data-lucide="users" class="nav-icon"></i>
+          <span class="sidebar-label">उपभोक्ता समिति</span>
+        </a>
+      </li>
+
+      <li>
+        <a href="{% url 'palika_engineer_final_valuations' %}"
+           class="nav-link-item {% if current == 'palika_engineer_final_valuations' %}active{% endif %}">
+          <i data-lucide="banknote" class="nav-icon"></i>
+          <span class="sidebar-label">अन्तिम मूल्याङ्कन</span>
+        </a>
+      </li>
+
+      <li>
+        <a href="{% url 'palika_engineer_committee_financial_report' %}"
+           class="nav-link-item {% if current == 'palika_engineer_committee_financial_report' %}active{% endif %}">
+          <i data-lucide="chart-pie" class="nav-icon"></i>
+          <span class="sidebar-label">समिति वित्तीय प्रतिवेदन</span>
+        </a>
+      </li>
+    </ul>
+
+    {% elif user.user_type == '2' or user.user_type == '5' or user.user_type == '9' %}
+    {# CAO / वडा कर्मचारी / वडा अध्यक्ष: उपभोक्ता समिति कार्यप्रवाह (स्वीकृत आदि) #}
+    <ul class="space-y-0.5">
+      <li>
+        <a href="{% url 'usercommittee_workflow' %}"
+           class="nav-link-item {% if current == 'usercommittee_workflow' %}active{% endif %}">
+          <i data-lucide="users" class="nav-icon"></i>
+          <span class="sidebar-label">उपभोक्ता समिति</span>
+        </a>
+      </li>
+      {% if 'uc.delegate' in me.perms %}
+      <li>
+        <a href="{% url 'uc_approvers' %}"
+           class="nav-link-item {% if current == 'uc_approvers' %}active{% endif %}">
+          <i data-lucide="shield-check" class="nav-icon"></i>
+          <span class="sidebar-label">स्वीकृत गर्ने अधिकारी</span>
+        </a>
+      </li>
+      {% endif %}
+    </ul>
+    {% endif %}
+
+    {% endwith %}
+  </nav>
+
+  {% if me %}
+  <div class="relative px-2.5 py-2.5 border-t border-white/10 shrink-0">
+    <button type="button" data-dropdown-toggle onclick="toggleDropdown('sidebarUserMenu')"
+            class="w-full flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-white/5 transition text-left">
+      <span class="avatar-initials w-9 h-9 text-xs bg-white text-slate-700 shrink-0">{{ me.initials }}</span>
+      <span class="sidebar-label min-w-0 flex-1">
+        <span class="block text-sm font-semibold text-white truncate">{{ me.name }}</span>
+        <span class="block text-xs text-slate-400 truncate">{{ me.mobile }}</span>
+      </span>
+      <i data-lucide="chevrons-up-down" class="sidebar-label w-4 h-4 text-slate-400"></i>
+    </button>
+    <div id="sidebarUserMenu" data-dropdown-panel
+         class="hidden absolute left-2.5 right-2.5 bottom-full mb-1 bg-white rounded-xl shadow-soft border border-slate-100 py-1.5 z-50">
+      <div class="px-3 py-2 border-b border-slate-100">
+        <p class="text-sm font-semibold text-slate-800 truncate">{{ me.name }}</p>
+        <p class="text-xs text-slate-500 truncate">{{ me.role }}</p>
+      </div>
+      <a href="{% url me.home %}" class="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50"><i data-lucide="layout-dashboard" class="w-4 h-4 text-slate-400"></i> ड्यासबोर्ड</a>
+      <a href="{% url 'logout' %}" hx-boost="false" class="flex items-center gap-2 px-3 py-2 text-sm text-rose-600 hover:bg-rose-50"><i data-lucide="log-out" class="w-4 h-4"></i> लगआउट</a>
+    </div>
+  </div>
+  {% endif %}
+</aside>
+<!-- ===================== END SIDEBAR ===================== -->
+
+<script>
+  function toggleSubmenu(btn) {
+    var panel = btn.nextElementSibling;
+    panel.classList.toggle('hidden');
+    var arrow = btn.querySelector('.menu-arrow');
+    if (arrow) arrow.classList.toggle('rotate-90');
+  }
+</script>

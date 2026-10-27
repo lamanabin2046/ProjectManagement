@@ -1,0 +1,27 @@
+from django.urls import path
+from .import views
+from . import views_roles
+from . import views_office
+
+urlpatterns = [
+    path('login/', views.login_view, name='login'),
+    path('doLogin/', views.doLogin, name='doLogin'),
+    path('doLogout', views.doLogout, name='logout'),
+    path('Admin/Home/', views.ADMIN_HOME, name='admin_home'),
+    path('Admin/Add/Staff/', views.add_staff, name='add_staff'),
+    path('Admin/ManageStaff/', views.manage_staff, name='manage_staff'),
+    path('Admin/Roles/', views_roles.roles_permissions, name='roles_permissions'),
+    path('Admin/Office/', views_office.office_settings, name='office_settings'),
+    path('Admin/ResetPassword/<int:user_id>/', views.reset_staff_password, name='reset_staff_password'),
+    path('Engineer/Home/', views.engineer_home, name='engineer_home'),
+    path('Engineer/Home/', views.engineer_home, name='engineer_home'),
+    path('Engineer/View/Projects', views.view_projects_engineer, name='view_projects_engineer'),
+    path('Engineer/View/UserCommittee', views.view_usercommittee_engineer, name='view_usercommittee_engineer'),
+    path('Engineer/View/AdvanceBankGuarantees', views.view_advance_bank_guarantees_engineer, name='view_advance_bank_guarantees_engineer'),
+    path('Engineer/View/PerformanceBankGuarantees', views.view_performance_bank_guarantees_engineer, name='view_performance_bank_guarantees_engineer'),
+    path('unauthorized/', views.unauthorized_view, name='unauthorized'),
+    path('WardSachib/Home/', views.ward_sachib_home, name='ward_sachib_home'),
+    path('Planning/Home/', views.planning_home, name='planning_home'),
+    path('WardEngineer/Home/', views.ward_engineer_home, name='ward_engineer_home'),
+    path('PalikaEngineer/Home/', views.palika_engineer_home, name='palika_engineer_home'),
+]

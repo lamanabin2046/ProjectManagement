@@ -1,0 +1,118 @@
+"""भूमिका र अनुमति (role-based access).
+
+हरेक अनुमति एउटा code हो (जस्तै "uc.approve")। कुन भूमिकालाई के अनुमति छ भन्ने:
+  1. Admin ले "भूमिका र अनुमति" पेजमा बदलेको भए त्यही (RolePermission)
+  2. नत्र तलको DEFAULT_ROLE_PERMS
+थप, कुनै व्यक्तिलाई छुट्टै अनुमति दिन सकिन्छ (UserPermission) — जस्तै CAO ले
+रुजु/स्वीकृतको अधिकार कुनै अधिकृतलाई प्रत्यायोजन गर्दा।
+
+प्रयोग:  from accounts.permissions import has_perm
+         if has_perm(request.user, "uc.approve"): ...
+टेम्प्लेटमा: {% if 'uc.approve' in me.perms %}
+"""
+
+ROLES = [
+    ("1", "प्रशासक (Admin)"),
+    ("2", "प्रमुख प्रशासकीय अधिकृत"),
+    ("3", "योजना अधिकृत"),
+    ("4", "इन्जिनियर"),
+    ("5", "वडा कर्मचारी"),
+    ("6", "वडा सचिव"),
+    ("7", "वडा इन्जिनियर"),
+    ("8", "पालिका इन्जिनियर"),
+    ("9", "वडा अध्यक्ष"),
+]
+ROLE_LABEL = dict(ROLES)
+
+# (code, group, label, help)
+PERMISSIONS = [
+    ("project.manage", "योजना", "योजना दर्ता / सम्पादन", "नयाँ योजना थप्ने र सच्याउने"),
+
+    ("uc.committee", "उपभोक्ता समिति", "समिति गठन / सम्पादन", "पदाधिकारी, सदस्य र तिनका कागजात राख्ने (वडा तहका कर्मचारीले आफ्नै वडाको मात्र)"),
+    ("uc.member_docs", "उपभोक्ता समिति", "सदस्यका कागजात हेर्ने", "नागरिकता, NID र फोटो हेर्ने"),
+    ("uc.estimate", "उपभोक्ता समिति", "लागत अनुमान थप्ने", ""),
+    ("uc.estimate_edit", "उपभोक्ता समिति", "लागत अनुमान सच्याउने", "स्वीकृत हुनुअघि मात्र"),
+
+    ("uc.sifaris_portal", "वडा सिफारिस", "पोर्टलबाट सिफारिस गर्ने", "वडा सचिवले आफ्नो वडाको"),
+    ("uc.sifaris_upload", "वडा सिफारिस", "कागजी सिफारिस अपलोड गर्ने", "वडाबाट कागजमा आएको सिफारिस स्क्यान गरी राख्ने"),
+
+    ("uc.approve", "रुजु / स्वीकृत", "रुजु / स्वीकृत गर्ने (सबै योजना)", "पालिका केन्द्रित र वडा प्रत्यायोजित दुवै"),
+    ("uc.approve_ward", "रुजु / स्वीकृत", "आफ्नो वडाको योजना स्वीकृत गर्ने", "वडा प्रत्यायोजित तरिकाका, आफ्नै वडाका योजना मात्र"),
+    ("uc.delegate", "रुजु / स्वीकृत", "स्वीकृत अधिकार प्रत्यायोजन गर्ने", "अरू अधिकृतलाई रुजु / स्वीकृतको अधिकार दिने/हटाउने"),
+
+    ("uc.public_audit", "सम्झौता र भुक्तानी", "सार्वजनिक परीक्षण / अनुगमन विवरण राख्ने", "मुचुल्का, उपस्थिति, फोटो र अनुगमन समितिको प्रतिवेदन"),
+    ("uc.agreement_print", "सम्झौता र भुक्तानी", "सम्झौता, टिप्पणी, बैंक पत्र, कार्यादेश छाप्ने", ""),
+    ("uc.valuation", "सम्झौता र भुक्तानी", "अन्तिम मूल्याङ्कन गर्ने", ""),
+    ("uc.payment_print", "सम्झौता र भुक्तानी", "अन्तिम टिप्पणी / हस्तान्तरण छाप्ने", ""),
+
+    ("uc.progress_photo", "काम प्रगति", "प्रगति फोटो अपलोड", ""),
+    ("uc.inspection", "काम प्रगति", "निरीक्षण टिप्पणी", ""),
+
+    ("letters.edit", "पत्र", "पत्र सम्पादन (एउटा पत्र मात्र)", "छाप्नुअघि त्यही योजनाको पत्रको पाठ बदल्ने"),
+    ("letters.templates", "पत्र", "पत्रको ढाँचा (सबै योजनामा)", "पालिकाको ढाँचा — placeholder सहित, सबै पत्रमा लागू"),
+    ("settings.staff", "सेटिङ", "कर्मचारी व्यवस्थापन", ""),
+    ("settings.tax", "सेटिङ", "कर शीर्षक", "अन्तिम भुक्तानीमा कट्टी हुने करका शीर्षक थप्ने/बदल्ने"),
+    ("settings.office", "सेटिङ", "कार्यालय सेटिङ र पत्र शीर्ष", "लोगो, नारा, वेबसाइट, इमेल र पत्र शीर्ष मिलाउने"),
+    ("settings.roles", "सेटिङ", "भूमिका र अनुमति मिलाउने", "Admin को यो अनुमति हटाउन मिल्दैन"),
+]
+PERM_LABEL = {c: l for c, _g, l, _h in PERMISSIONS}
+PERM_CODES = set(PERM_LABEL)
+
+# Admin बाट कहिल्यै नहट्ने (आफैँलाई बाहिर थुन्न नमिल्ने)
+LOCKED = {("1", "settings.roles")}
+
+ALL = {c for c, *_ in PERMISSIONS}
+DEFAULT_ROLE_PERMS = {
+    "1": ALL - {"uc.approve_ward"},
+    "2": {"uc.approve", "uc.delegate", "uc.member_docs", "uc.agreement_print", "uc.payment_print", "letters.edit"},
+    "3": {"uc.public_audit", "project.manage", "uc.committee", "uc.member_docs", "uc.estimate", "uc.sifaris_upload",
+          "uc.agreement_print", "uc.valuation", "uc.payment_print", "letters.edit"},
+    "4": {"uc.estimate"},
+    "5": {"uc.sifaris_upload"},
+    "6": {"uc.public_audit", "uc.committee", "uc.member_docs", "uc.sifaris_portal", "letters.edit"},
+    "7": {"uc.public_audit", "uc.estimate", "uc.progress_photo"},
+    "8": {"uc.public_audit", "uc.estimate", "uc.estimate_edit", "uc.inspection"},
+    "9": {"uc.approve_ward", "uc.member_docs"},
+}
+
+# व्यक्तिगत रूपमा दिन मिल्ने अनुमति (प्रत्यायोजन) र कसलाई दिन मिल्ने
+GRANTABLE = {
+    "uc.approve": {"1", "3", "4", "8"},   # CAO ले प्रत्यायोजन गर्ने अधिकृत
+}
+
+
+def role_perms(role):
+    """एउटा भूमिकाका प्रभावी अनुमति (Admin ले बदलेको + default)."""
+    from .models import RolePermission
+
+    perms = set(DEFAULT_ROLE_PERMS.get(str(role), set()))
+    for perm, allowed in RolePermission.objects.filter(role=str(role)).values_list("perm", "allowed"):
+        if (str(role), perm) in LOCKED:
+            continue
+        (perms.add if allowed else perms.discard)(perm)
+    perms |= {p for r, p in LOCKED if r == str(role)}
+    return perms & PERM_CODES
+
+
+def user_perms(user):
+    """प्रयोगकर्ताका सबै अनुमति (भूमिका + व्यक्तिगत), एउटा request भित्र cache।"""
+    if not getattr(user, "is_authenticated", False):
+        return frozenset()
+    cached = getattr(user, "_pms_perms", None)
+    if cached is not None:
+        return cached
+    from .models import UserPermission
+
+    perms = role_perms(user.user_type)
+    perms |= set(UserPermission.objects.filter(user=user).values_list("perm", flat=True))
+    user._pms_perms = frozenset(perms)
+    return user._pms_perms
+
+
+def has_perm(user, code):
+    return code in user_perms(user)
+
+
+def clear_cache(user):
+    if hasattr(user, "_pms_perms"):
+        del user._pms_perms

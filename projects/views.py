@@ -1,0 +1,590 @@
+from django.shortcuts import render,redirect,get_object_or_404
+from django.contrib import messages
+from .models import FiscalYear, Procurement_Type, Project_Type, Budget_Type, Ward, Project, ProjectTimeline
+
+from django.db import IntegrityError, transaction
+from django.db.models import Count, Q
+from django.core.exceptions import ObjectDoesNotExist
+from decimal import Decimal
+import unicodedata
+import re
+
+# Create your views here.
+
+def devanagari_to_english_number(dev_num_str):
+    devanagari_digits = '०१२३४५६७८९'
+    english_digits = '0123456789'
+    translation_table = str.maketrans(devanagari_digits, english_digits)
+    return dev_num_str.translate(translation_table)
+
+
+
+
+def add_project(request):
+
+    
+    if request.method == "POST":
+        fiscal_id = request.POST.get("fiscal")
+        fiscalYear = FiscalYear.objects.get(id =fiscal_id )
+        procurement_type_id = request.POST.get("procurement_type")
+        procurement_type = Procurement_Type.objects.get(id =procurement_type_id )
+        project_type_id = request.POST.get("project_type")
+        project_type = Project_Type.objects.get(id =project_type_id )
+        budget_type_id = request.POST.get("budget_type")
+        budget_type = Budget_Type.objects.get(id =budget_type_id )
+        ward_id = request.POST.get("ward")
+        ward = Ward.objects.get(id=ward_id)
+        name = request.POST.get("name")
+        address = request.POST.get("address")
+        budget = request.POST.get("budget")
+                # ✅ Convert Devanagari to English number
+        if budget:
+            budget = devanagari_to_english_number(budget)
+       
+        project = Project (
+            fiscalyear = fiscalYear,
+            name = name,
+            ward = ward,
+            project_type = project_type,
+            address = address,
+            procurement_type = procurement_type,
+            budget_type =budget_type,
+            budget = budget,
+            execution_mode = request.POST.get("execution_mode", "") if request.POST.get("execution_mode", "") in ("", "municipal", "ward") else "",
+        )
+        project.save()
+        messages.success(request,  " Successfully Added !")
+        return redirect('view_projects') 
+
+    
+    fiscalyear = FiscalYear.objects.all()
+    ward = Ward.objects.all()
+    procurement_type = Procurement_Type.objects.all()
+    budget_type = Budget_Type.objects.all()
+    project_type = Project_Type.objects.all()
+    
+    context = {
+        "fiscalyear":fiscalyear,
+        "ward":ward,
+        "procurement_type":procurement_type,
+        "budget_type":budget_type,
+        "project_type":project_type
+        
+        
+    }
+    
+    return render(request,"Admin/User/add_projects.html",context)
+
+
+
+
+IMPORT_REQUIRED_COLUMNS = [
+    "name",
+    "address",
+    "budget",
+    "status",
+    "budget_type_id",
+    "fiscalyear_id",
+    "procurement_type_id",
+    "ward_id",
+    "project_type_id",
+]
+
+
+def _normalize_header(value):
+    """'  Ward ID ' -> 'ward_id'. Makes header matching forgiving about
+    case, surrounding spaces, inner spaces/hyphens and invisible BOM/NBSP
+    characters that Excel sometimes carries in."""
+    text = unicodedata.normalize("NFKC", str(value)).replace("\ufeff", "")
+    text = text.strip().lower()
+    return re.sub(r"[\s\-]+", "_", text)
+
+
+def _find_project_table(sheets):
+    """Return (dataframe, sheet_name) for the first sheet that has all the
+    required headers in one of its first 10 rows. Prefers a sheet named
+    'Projects'. Returns (None, first_row_headers_seen) if nothing matched."""
+    import pandas as pd
+
+    names = list(sheets.keys())
+    names.sort(key=lambda n: 0 if str(n).strip().lower() == "projects" else 1)
+    first_seen = []
+    for sheet_name in names:
+        raw = sheets[sheet_name]
+        for header_row in range(min(10, len(raw))):
+            headers = [_normalize_header(v) if not pd.isna(v) else "" for v in raw.iloc[header_row]]
+            if not first_seen and any(headers):
+                first_seen = [h for h in headers if h]
+            if all(col in headers for col in IMPORT_REQUIRED_COLUMNS):
+                df = raw.iloc[header_row + 1:].copy()
+                df.columns = headers
+                df = df.dropna(how="all")          # ignore blank rows
+                # keep original Excel row numbers for error messages
+                df.index = df.index + 1
+                return df, sheet_name
+    return None, first_seen
+
+
+def _to_number(value):
+    """Accepts 2500000, '2,500,000', '२५,००,०००'. Raises ValueError on blanks."""
+    import pandas as pd
+
+    if value is None or (not isinstance(value, str) and pd.isna(value)):
+        raise ValueError("empty value")
+    text = devanagari_to_english_number(str(value)).replace(",", "").strip()
+    if text == "":
+        raise ValueError("empty value")
+    return float(text)
+
+
+def import_excel(request):
+    if request.method != "POST" or "excel_file" not in request.FILES:
+        if request.method == "POST":
+            messages.error(request, "Please upload an Excel file.")
+        return render(request, "Admin/User/import_excel.html")
+
+    # pandas/numpy is imported here (not at module level) on purpose: it
+    # pulls in OpenBLAS, which spins up dozens of native threads on first
+    # import. Loading it lazily, only for this Excel-import view, keeps
+    # every other page light on the process-limited shared host.
+    import pandas as pd
+
+    try:
+        # Read every sheet with no header assumption; we locate the header
+        # row ourselves so a title row or sheet order doesn't break imports.
+        sheets = pd.read_excel(request.FILES["excel_file"], sheet_name=None, header=None, dtype=object)
+        df, info = _find_project_table(sheets)
+
+        if df is None:
+            messages.error(
+                request,
+                "Could not find the header row. Required columns: "
+                + ", ".join(IMPORT_REQUIRED_COLUMNS)
+                + ". Columns found in your file: "
+                + (", ".join(info) if info else "(none)"),
+            )
+            return render(request, "Admin/User/import_excel.html")
+
+        success = 0
+        failed = 0
+
+        for excel_row, row in df.iterrows():
+            try:
+                name = row["name"]
+                address = row["address"]
+                if pd.isna(name) or not str(name).strip():
+                    raise ValueError("name is empty")
+                if pd.isna(address) or not str(address).strip():
+                    raise ValueError("address is empty")
+
+                Project.objects.create(
+                    name=str(name).strip(),
+                    address=str(address).strip(),
+                    budget=_to_number(row["budget"]),
+                    status=int(_to_number(row["status"])),
+                    fiscalyear=FiscalYear.objects.get(id=int(_to_number(row["fiscalyear_id"]))),
+                    budget_type=Budget_Type.objects.get(id=int(_to_number(row["budget_type_id"]))),
+                    procurement_type=Procurement_Type.objects.get(id=int(_to_number(row["procurement_type_id"]))),
+                    ward=Ward.objects.get(id=int(_to_number(row["ward_id"]))),
+                    project_type=Project_Type.objects.get(id=int(_to_number(row["project_type_id"]))),
+                )
+                success += 1
+
+            except ObjectDoesNotExist as e:
+                failed += 1
+                messages.error(request, f"Row {excel_row}: invalid ID — {e}")
+            except Exception as e:
+                failed += 1
+                messages.error(request, f"Row {excel_row}: {e}")
+
+        if failed:
+            messages.warning(request, f"Import finished: {success} projects added, {failed} rows skipped (see errors).")
+        else:
+            messages.success(request, f"Import completed successfully. {success} projects added.")
+
+    except Exception as e:
+        messages.error(request, f"Import failed: {str(e)}")
+
+    return render(request, "Admin/User/import_excel.html")
+
+
+
+
+
+
+def view_projects(request):
+    latest_fiscal_year = FiscalYear.objects.order_by('-name').first()
+
+    # ================= खोज / फिल्टर (site-wide search) =================
+    q = (request.GET.get("q") or "").strip()
+    ward_id = request.GET.get("ward") or ""
+    fiscalyear_id = request.GET.get("fiscalyear") or ""
+    procurement_type_id = request.GET.get("procurement_type") or ""
+    budget_type_id = request.GET.get("budget_type") or ""
+
+    filters_applied = bool(q or ward_id or fiscalyear_id or procurement_type_id or budget_type_id)
+
+    projects = Project.objects.select_related(
+        "ward", "fiscalyear", "project_type", "procurement_type", "budget_type", "user_committee"
+    )
+
+    if fiscalyear_id:
+        projects = projects.filter(fiscalyear_id=fiscalyear_id)
+    elif not filters_applied:
+        # कुनै फिल्टर नलगाईं पृष्ठ पहिलोपटक खोल्दा, पहिलेकै व्यवहार अनुसार
+        # पछिल्लो आ.व.का योजनाहरू मात्र देखाउने।
+        projects = projects.filter(fiscalyear=latest_fiscal_year)
+
+    if q:
+        projects = projects.filter(
+            Q(name__icontains=q)
+            | Q(user_committee__name__icontains=q)
+            | Q(user_committee__chairman_name__icontains=q)
+        ).distinct()
+
+    if ward_id:
+        projects = projects.filter(ward_id=ward_id)
+    if procurement_type_id:
+        projects = projects.filter(procurement_type_id=procurement_type_id)
+    if budget_type_id:
+        projects = projects.filter(budget_type_id=budget_type_id)
+
+    projects = projects.order_by(
+        'ward__id',   # Ward 1, 2, 3...
+        '-id'         # Newest project first
+    )
+
+    context = {
+        "projects": projects,
+        "latest_fiscal_year": latest_fiscal_year,
+        "filters_applied": filters_applied,
+
+        # फिल्टर ड्रपडाउनका लागि विकल्पहरू
+        "wards": Ward.objects.all(),
+        "fiscalyears": FiscalYear.objects.all().order_by('-name'),
+        "procurement_types": Procurement_Type.objects.all(),
+        "budget_types": Budget_Type.objects.all(),
+
+        # हाल छानिएका फिल्टर मानहरू (फारममा फिर्ता देखाउन)
+        "selected_q": q,
+        "selected_ward": ward_id,
+        "selected_fiscalyear": fiscalyear_id,
+        "selected_procurement_type": procurement_type_id,
+        "selected_budget_type": budget_type_id,
+    }
+
+    return render(request, "Admin/User/view_projects.html", context)
+
+
+
+
+def edit_project(request, id):
+    project = Project.objects.get(id = id)
+    fiscalyear = FiscalYear.objects.all()
+    wards = Ward.objects.all()
+    procurement_type = Procurement_Type.objects.all()
+    budget_type = Budget_Type.objects.all()
+    project_type = Project_Type.objects.all()
+    
+    
+    context = {
+        "project":project,
+        "fiscalyear":fiscalyear,
+        "wards":wards,
+        "procurement_type":procurement_type,
+        "budget_type":budget_type,
+        "project_type":project_type
+        
+        
+    }
+    return render(request,"Admin/User/edit_project.html",context)
+
+
+
+def update_project(request):
+    if request.method == "POST":
+        fiscal_year_id = request.POST.get('fiscal')
+        project_id = request.POST.get('project_id')
+        project_name = request.POST.get('name')
+        ward_id = request.POST.get('ward_id')
+        address = request.POST.get('address')
+        budget = request.POST.get('budget')
+
+        if budget:
+            budget = devanagari_to_english_number(budget)
+        fiscalyear = FiscalYear.objects.get(id=fiscal_year_id)
+        procurement_type_id = request.POST.get("procurement_type")
+        procurement_type = Procurement_Type.objects.get(id =procurement_type_id )
+        budget_type_id = request.POST.get("budget_type")
+        budget_type = Budget_Type.objects.get(id =budget_type_id )
+        project_type_id = request.POST.get("project_type")
+        project_type = Project_Type.objects.get(id = project_type_id)
+        ward_id = request.POST.get("ward_id")
+        ward = Ward.objects.get(id=ward_id)
+        project = Project.objects.get(id=project_id)
+        project.procurement_type = procurement_type
+        project.name = project_name
+        project.address = address
+        project.budget = budget
+        project.budget_type = budget_type
+        project.fiscalyear = fiscalyear
+        project.project_type = project_type
+        project.ward = ward
+        mode = request.POST.get("execution_mode", project.execution_mode)
+        if mode in ("", "municipal", "ward"):
+            project.execution_mode = mode
+        project.save()
+        messages.success(request, 'Records are successfully updated')
+        return redirect('view_projects')
+    
+    
+    return render(request, 'Admin/User/edit_project.html')
+
+
+
+
+
+
+def delete_project(request, pk):
+    if request.method == "POST":
+        project = get_object_or_404(Project, pk=pk)
+        project.delete()
+        messages.success(request, "Project deleted successfully.")
+    return redirect('view_projects')  # change to your list view name
+
+
+
+
+from django.contrib.auth.decorators import login_required
+
+@login_required
+def project_timeline(request, project_id):
+    project = get_object_or_404(Project, id=project_id)
+
+    timelines = ProjectTimeline.objects.filter(project=project).order_by('-created_at')
+    # ordering already handled by Meta
+
+    # Only ENGINEER and ADMIN can upload
+    can_upload = request.user.user_type in ['1', '4']
+    # 1 = ADMIN, 4 = ENGINEER
+
+    if request.method == "POST" and can_upload:
+        image = request.FILES.get("image")
+        description = request.POST.get("description")
+        stage_raw = request.POST.get("stage")
+        stage = None
+        if stage_raw:
+            try:
+                candidate = int(stage_raw)
+                if candidate in dict(ProjectTimeline.STAGE_CHOICES):
+                    stage = candidate
+            except (TypeError, ValueError):
+                stage = None
+
+        if image and description:
+            ProjectTimeline.objects.create(
+                project=project,
+                image=image,
+                description=description,
+                stage=stage,
+                uploaded_by=request.user
+            )
+            return redirect("project_timeline", project_id=project.id)
+
+    # =========================================================
+    # FULL PROJECT OVERVIEW — cost estimate, user committee,
+    # bidding/contract, advance payments, final valuation
+    # =========================================================
+    from biddings.models import SealedBid  # local import avoids app-loading order issues
+
+    cost_estimate = getattr(project, "cost_estimate", None)
+    user_committee = getattr(project, "user_committee", None)
+    final_valuation = getattr(project, "final_payment", None)  # usercommittee.FinalPayment
+
+    bids = (
+        SealedBid.objects
+        .filter(project=project)
+        .select_related("contract", "contract__bond_issued")
+        .prefetch_related(
+            "contract__advance_payments__bank_guarantee",
+            "contract__running_evaluations",
+        )
+        .order_by("-created_at")
+    )
+
+    advance_payments = []
+    running_evaluations = []
+    for bid in bids:
+        contract = getattr(bid, "contract", None)
+        if not contract:
+            continue
+        advance_payments.extend(contract.advance_payments.all())
+        running_evaluations.extend(contract.running_evaluations.all())
+
+    total_advance_paid = sum(
+        (ap.approved_amount for ap in advance_payments), Decimal("0")
+    )
+    total_running_paid = sum(
+        (rev.payable_amount for rev in running_evaluations), Decimal("0")
+    )
+
+    context = {
+        "project": project,
+        "timelines": timelines,
+        "can_upload": can_upload,
+        "stage_choices": ProjectTimeline.STAGE_CHOICES,
+
+        "cost_estimate": cost_estimate,
+        "user_committee": user_committee,
+        "final_valuation": final_valuation,
+
+        "bids": bids,
+        "advance_payments": advance_payments,
+        "total_advance_paid": total_advance_paid,
+        "running_evaluations": running_evaluations,
+        "total_running_paid": total_running_paid,
+    }
+
+    return render(request, "Admin/User/project_timeline.html", context)
+
+
+# ======================================================================
+# सेटिङ — लुकअप व्यवस्थापन (आर्थिक वर्ष / बजेट प्रकार / खरिद प्रकार)
+# ======================================================================
+# सबै तीनवटा मोडेल (FiscalYear, Budget_Type, Procurement_Type) मा साधारण
+# `name` फिल्ड मात्र छ, र Project मोडेलका सम्बन्धित ForeignKey हरू
+# on_delete=models.CASCADE भएकोले, प्रयोगमा रहेको लुकअप मेटाउँदा योजना नै
+# मेटिने जोखिम हुन्छ। त्यसैले मेटाउनु अघि सधैं प्रयोग जाँच गरिन्छ।
+
+def _is_admin(request):
+    return request.user.is_authenticated and getattr(request.user, "user_type", None) == '1'
+
+
+def _lookup_list_and_create(request, model, list_url_name, edit_url_name, delete_url_name, page_title, label, placeholder, fk_field_name):
+    if not _is_admin(request):
+        return redirect("unauthorized")
+
+    if request.method == "POST":
+        name = (request.POST.get("name") or "").strip()
+        if not name:
+            messages.error(request, f"{label} लेख्नुहोस्।")
+        elif model.objects.filter(name__iexact=name).exists():
+            messages.error(request, f"यो {label} पहिले नै थपिएको छ।")
+        else:
+            model.objects.create(name=name)
+            messages.success(request, f"{label} सफलतापूर्वक थपियो ✅")
+        return redirect(list_url_name)
+
+    items = model.objects.annotate(usage_count=Count(fk_field_name)).order_by("-id")
+
+    context = {
+        "page_title": page_title,
+        "label": label,
+        "placeholder": placeholder,
+        "items": items,
+        "edit_url_name": edit_url_name,
+        "delete_url_name": delete_url_name,
+    }
+    return render(request, "Admin/Settings/manage_lookup.html", context)
+
+
+def _lookup_edit(request, model, id, list_url_name, page_title, label):
+    if not _is_admin(request):
+        return redirect("unauthorized")
+
+    item = get_object_or_404(model, id=id)
+
+    if request.method == "POST":
+        name = (request.POST.get("name") or "").strip()
+        if not name:
+            messages.error(request, f"{label} लेख्नुहोस्।")
+            return redirect(request.path)
+        if model.objects.filter(name__iexact=name).exclude(id=item.id).exists():
+            messages.error(request, f"यो {label} पहिले नै अर्को नामको रुपमा थपिएको छ।")
+            return redirect(request.path)
+        item.name = name
+        item.save()
+        messages.success(request, f"{label} सफलतापूर्वक सम्पादन गरियो ✅")
+        return redirect(list_url_name)
+
+    context = {
+        "page_title": page_title,
+        "label": label,
+        "item": item,
+        "list_url_name": list_url_name,
+    }
+    return render(request, "Admin/Settings/edit_lookup.html", context)
+
+
+def _lookup_delete(request, model, id, list_url_name, label, fk_field_name):
+    if not _is_admin(request):
+        return redirect("unauthorized")
+
+    item = get_object_or_404(model, id=id)
+
+    if request.method == "POST":
+        in_use = Project.objects.filter(**{f"{fk_field_name}_id": item.id}).exists()
+        if in_use:
+            messages.error(request, f"यो {label} कुनै योजनामा प्रयोग भइरहेको छ, त्यसैले मेटाउन मिल्दैन।")
+        else:
+            item.delete()
+            messages.success(request, f"{label} सफलतापूर्वक हटाइयो ✅")
+
+    return redirect(list_url_name)
+
+
+# ----------------- आर्थिक वर्ष (FiscalYear) -----------------
+
+def manage_fiscal_years(request):
+    return _lookup_list_and_create(
+        request, FiscalYear,
+        "manage_fiscal_years", "edit_fiscal_year", "delete_fiscal_year",
+        "आर्थिक वर्ष व्यवस्थापन", "आर्थिक वर्ष", "जस्तै: २०८२/०८३",
+        "project",
+    )
+
+
+def edit_fiscal_year(request, id):
+    return _lookup_edit(request, FiscalYear, id, "manage_fiscal_years", "आर्थिक वर्ष सम्पादन", "आर्थिक वर्ष")
+
+
+def delete_fiscal_year(request, id):
+    return _lookup_delete(request, FiscalYear, id, "manage_fiscal_years", "आर्थिक वर्ष", "fiscalyear")
+
+
+# ----------------- बजेट प्रकार (Budget_Type) -----------------
+
+def manage_budget_types(request):
+    return _lookup_list_and_create(
+        request, Budget_Type,
+        "manage_budget_types", "edit_budget_type", "delete_budget_type",
+        "बजेट प्रकार व्यवस्थापन", "बजेट प्रकार", "जस्तै: पुँजीगत / चालु",
+        "project",
+    )
+
+
+def edit_budget_type(request, id):
+    return _lookup_edit(request, Budget_Type, id, "manage_budget_types", "बजेट प्रकार सम्पादन", "बजेट प्रकार")
+
+
+def delete_budget_type(request, id):
+    return _lookup_delete(request, Budget_Type, id, "manage_budget_types", "बजेट प्रकार", "budget_type")
+
+
+# ----------------- खरिद प्रकार (Procurement_Type) -----------------
+
+def manage_procurement_types(request):
+    return _lookup_list_and_create(
+        request, Procurement_Type,
+        "manage_procurement_types", "edit_procurement_type", "delete_procurement_type",
+        "खरिद प्रकार व्यवस्थापन", "खरिद प्रकार", "जस्तै: उपभोक्ता समिति मार्फत",
+        "project",
+    )
+
+
+def edit_procurement_type(request, id):
+    return _lookup_edit(request, Procurement_Type, id, "manage_procurement_types", "खरिद प्रकार सम्पादन", "खरिद प्रकार")
+
+
+def delete_procurement_type(request, id):
+    return _lookup_delete(request, Procurement_Type, id, "manage_procurement_types", "खरिद प्रकार", "procurement_type")
