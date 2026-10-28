@@ -50,6 +50,7 @@ PERMISSIONS = [
 
     ("letters.edit", "पत्र", "पत्र सम्पादन (एउटा पत्र मात्र)", "छाप्नुअघि त्यही योजनाको पत्रको पाठ बदल्ने"),
     ("letters.templates", "पत्र", "पत्रको ढाँचा (सबै योजनामा)", "पालिकाको ढाँचा — placeholder सहित, सबै पत्रमा लागू"),
+    ("report.uc", "प्रतिवेदन", "उपभोक्ता समिति प्रतिवेदन", "विनियोजित, भुक्तानी, कर कट्टी — एकीकृत, योजनागत र कर प्रतिवेदन"),
     ("report.outputs", "प्रतिवेदन", "भौतिक उपलब्धि प्रतिवेदन", "कति कि.मि. बाटो, कति भवन … (सबै वडा, आ.व. अनुसार)"),
     ("settings.staff", "सेटिङ", "कर्मचारी व्यवस्थापन", ""),
     ("settings.tax", "सेटिङ", "कर शीर्षक", "अन्तिम भुक्तानीमा कट्टी हुने करका शीर्षक थप्ने/बदल्ने"),
@@ -67,14 +68,14 @@ ALL = {c for c, *_ in PERMISSIONS}
 DEFAULT_ROLE_PERMS = {
     "1": ALL - {"uc.approve_ward"},
     "2": {"uc.approve", "uc.delegate", "uc.member_docs", "uc.agreement_print", "uc.payment_print", "letters.edit",
-          "report.outputs"},
+          "report.outputs", "report.uc"},
     "3": {"uc.public_audit", "project.manage", "uc.committee", "uc.member_docs", "uc.estimate", "uc.sifaris_upload",
-          "uc.agreement_print", "uc.valuation", "uc.payment_print", "letters.edit", "report.outputs", "settings.outputs"},
+          "uc.agreement_print", "uc.valuation", "uc.payment_print", "letters.edit", "report.outputs", "report.uc", "settings.outputs"},
     "4": {"uc.estimate"},
     "5": {"uc.sifaris_upload"},
     "6": {"uc.public_audit", "uc.committee", "uc.member_docs", "uc.sifaris_portal", "letters.edit"},
     "7": {"uc.public_audit", "uc.estimate", "uc.progress_photo"},
-    "8": {"uc.public_audit", "uc.estimate", "uc.estimate_edit", "uc.inspection", "report.outputs"},
+    "8": {"uc.public_audit", "uc.estimate", "uc.estimate_edit", "uc.inspection", "report.outputs", "report.uc"},
     "9": {"uc.approve_ward", "uc.member_docs"},
 }
 

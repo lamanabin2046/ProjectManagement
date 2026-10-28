@@ -16,3 +16,44 @@ def qty(v):
         return v
     s = format(d.normalize(), "f")
     return s
+
+
+NP = str.maketrans("0123456789", "०१२३४५६७८९")
+
+
+def _group_np(intpart):
+    """1234567 -> '12,34,567' (लाख/करोड शैली)."""
+    s = str(intpart)
+    if len(s) <= 3:
+        return s
+    head, tail = s[:-3], s[-3:]
+    parts = []
+    while len(head) > 2:
+        parts.insert(0, head[-2:])
+        head = head[:-2]
+    if head:
+        parts.insert(0, head)
+    return ",".join(parts + [tail])
+
+
+@register.filter
+def money(v, decimals=2):
+    """1234567.5 -> '१२,३४,५६७.५०' ; None -> '—'."""
+    if v is None or v == "":
+        return "—"
+    try:
+        d = Decimal(str(v)).quantize(Decimal(1) if int(decimals) == 0 else Decimal("0." + "0" * int(decimals)))
+    except Exception:
+        return v
+    neg = d < 0
+    d = abs(d)
+    s = format(d, "f")
+    ip, _, fp = s.partition(".")
+    out = _group_np(ip) + ("." + fp if fp else "")
+    return ("-" if neg else "") + out.translate(NP)
+
+
+@register.filter
+def npn(v):
+    """अङ्क मात्र नेपालीमा (कमा बिना)।"""
+    return "" if v is None else str(v).translate(NP)

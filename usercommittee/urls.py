@@ -1,11 +1,14 @@
 from django.urls import path
 from .import views
-from . import views_workflow, views_installments, views_audit
+from . import views_workflow, views_installments, views_audit, views_reports
 from .models import DocumentPrint
 from .workflow import logs_print, uc_gate
 
 urlpatterns = [
     # ================= कार्यप्रवाह (workflow tracker) =================
+    path('Reports/', views_reports.summary, name='uc_report_summary'),
+    path('Reports/Projects/', views_reports.projects, name='uc_report_projects'),
+    path('Reports/Taxes/', views_reports.taxes, name='uc_report_taxes'),
     path('Workflow/', views_workflow.workflow_list, name='usercommittee_workflow'),
     path('Workflow/<int:project_id>/', views_workflow.workflow_detail, name='usercommittee_workflow_detail'),
     path('Workflow/<int:project_id>/approve/', views_workflow.approve, name='uc_approve'),

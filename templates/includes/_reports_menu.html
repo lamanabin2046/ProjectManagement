@@ -1,0 +1,20 @@
+{% comment %}प्रतिवेदन मेनु (सबै भूमिकाका sidebar मा) — अनुमति अनुसार{% endcomment %}
+{% if 'report.uc' in me.perms or 'report.outputs' in me.perms %}
+<li class="sidebar-group">
+  <button type="button" onclick="toggleSubmenu(this)" class="nav-link-item w-full">
+    <i data-lucide="file-bar-chart" class="nav-icon"></i>
+    <span class="sidebar-label flex-1 text-left">प्रतिवेदन</span>
+    <i data-lucide="chevron-right" class="menu-arrow"></i>
+  </button>
+  <ul class="submenu-panel {% if current not in 'uc_report_summary,uc_report_projects,uc_report_taxes,outputs_report' %}hidden{% endif %} mt-1 ml-5 pl-3 border-l border-white/10 space-y-0.5">
+    {% if 'report.uc' in me.perms %}
+    <li><a href="{% url 'uc_report_summary' %}" class="submenu-link {% if current == 'uc_report_summary' %}active{% endif %}"><i data-lucide="layout-dashboard" class="sub-icon"></i><span>उपभोक्ता समिति एकीकृत</span></a></li>
+    <li><a href="{% url 'uc_report_projects' %}" class="submenu-link {% if current == 'uc_report_projects' %}active{% endif %}"><i data-lucide="table" class="sub-icon"></i><span>योजनागत वित्तीय विवरण</span></a></li>
+    <li><a href="{% url 'uc_report_taxes' %}" class="submenu-link {% if current == 'uc_report_taxes' %}active{% endif %}"><i data-lucide="receipt" class="sub-icon"></i><span>कर कट्टी प्रतिवेदन</span></a></li>
+    {% endif %}
+    {% if 'report.outputs' in me.perms %}
+    <li><a href="{% url 'outputs_report' %}" class="submenu-link {% if current == 'outputs_report' %}active{% endif %}"><i data-lucide="ruler" class="sub-icon"></i><span>भौतिक उपलब्धि</span></a></li>
+    {% endif %}
+  </ul>
+</li>
+{% endif %}
