@@ -3,22 +3,11 @@
 {% load letters %}
 {% load nepali_date %}
 {% load nepali_filters %}
+{% load outputs %}
 <html lang="ne">
 <head>
   <meta charset="UTF-8">
-  <title>दररेट स्वीकृत तथा कार्यादेश</title>
-
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-
-  <style>
-    /* ================= PAGE SETUP ================= *<!DOCTYPE html>
-{% load static %}
-{% load nepali_date %}
-{% load nepali_filters %}
-<html lang="ne">
-<head>
-  <meta charset="UTF-8">
-  <title>दररेट स्वीकृत तथा कार्यादेश</title>
+  <title>दरभाउपत्र स्वीकृत तथा कार्यादेश टिप्पणी</title>
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
 
@@ -39,31 +28,6 @@
       line-height: 1.9;
     }
 
-    /* ================= LETTER HEAD ================= */
-    .letter-head {
-      display: flex;
-      align-items: center;
-      gap: 15px;
-      color: #b91c1c;              /* Government red */
-      border-bottom: 2px solid #b91c1c;
-      padding-bottom: 10px;
-      margin-bottom: 18px;
-    }
-
-    .letter-head * {
-      color: #b91c1c !important;
-    }
-
-    .letter-head img {
-      width: 90px;
-    }
-
-    .letter-head-content {
-      flex-grow: 1;
-      text-align: center;
-      line-height: 1.3;
-    }
-
     /* ================= META ================= */
     .date-right {
       text-align: right;
@@ -83,14 +47,27 @@
       text-align: justify;
     }
 
-    ul {
-      list-style: none;
-      padding-left: 0;
-      margin-top: 10px;
+    table.bids {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 8px 0 14px;
+      font-size: 14px;
     }
 
-    ul li {
-      margin-bottom: 6px;
+    table.bids th,
+    table.bids td {
+      border: 1px solid #555;
+      padding: 4px 8px;
+    }
+
+    table.bids th {
+      background: #f2f2f2;
+      text-align: center;
+    }
+
+    table.bids td.amt {
+      text-align: right;
+      white-space: nowrap;
     }
 
     /* ================= SIGN ================= */
@@ -107,7 +84,7 @@
 
 <!-- ================= LETTER HEAD ================= -->
 {% include 'includes/letterhead.html' with title="टिप्पणी र आदेश" %}
-{% editable_letter "quatation.approved_quatation_tippani.1" "दररेट स्वीकृत तथा कार्यादेश (1)" %}
+{% editable_letter "quatation.approved_quatation_tippani.1" "दरभाउपत्र स्वीकृत तथा कार्यादेश" %}
 
 <!-- ================= DATE ================= -->
 <div class="date-right">
@@ -116,49 +93,66 @@
 
 <!-- ================= SUBJECT ================= -->
 <div class="subject">
-  विषयः दररेट स्वीकृत तथा सम्झौता गराई कार्यादेश सम्बन्धमा ।
+  विषयः न्यूनतम दरभाउपत्र स्वीकृत गरी सम्झौता तथा कार्यादेश दिने सम्बन्धमा ।
 </div>
 
 <!-- ================= BODY ================= -->
 <p>श्रीमान्,</p>
 
 <p class="text-main">
-  {{ palika.full_name }}को चालु आ. व.
+  यस {{ palika.full_name }}को आ.व.
   {{ quatation.project.fiscalyear.name|to_nepali_number }}
-  को {{ palika.assembly }}बाट स्वीकृत बजेट अनुसार वडा नम्बर
+  को {{ palika.assembly }}बाट स्वीकृत बजेट अनुसार वडा नं.
   {{ quatation.project.ward.name|to_nepali_number }}
-  मा वडा/पालिका स्तरीय योजना
-  <strong>{{ quatation.project.name }}</strong>
-  कार्यका लागि
-  रु {{ quatation.project.budget|to_nepali_number }}/-
+  मा सञ्चालन हुने
+  <strong>“{{ quatation.project.name }}”</strong>
+  योजनाका लागि रु. {{ quatation.project.budget|money:0 }}/-
   ({{ quatation.project.budget|to_devanagari_words }})
-  विनियोजन गरी स्वीकृत गरिएको छ ।
+  विनियोजन भएको छ ।
 </p>
 
 <p class="text-main">
-  सो कार्यका लागि कार्यालयको प्राविधिक शाखाबाट
-  रु {{ quatation.cost_estimate|to_nepali_number }}
-  लागत अनुमान तयार गरी सूचीकृत फर्महरूसँग
-  दररेट माग गरिएकोमा सबैभन्दा न्यूनतम दररेट
-  श्री {{ lowest_firm_name }} {{ lowest_firm_address }}
-  ले पेश गरेको
-  रु {{ lowest_bidded_price|to_nepali_number }}/-
-  ({{ lowest_bidded_price|to_devanagari_words }})
-  स्वीकृत गरी सम्झौता गराई कार्यादेश दिन
-  उपयुक्त देखिएकोले निर्णयार्थ पेश गरिएको छ ।
+  उक्त योजनाको कार्यालयको प्राविधिक शाखाबाट तयार गरिएको भ्याट सहितको लागत अनुमान
+  रु. {{ quatation.cost_estimate|money:0 }}/- बमोजिम
+  {% if invite_date_nepali %}मिति {{ invite_date_nepali }} मा {% endif %}सूचीकृत
+  {{ invited_count|to_nepali_number }} वटा फर्मबाट दरभाउपत्र माग गरिएकोमा
+  {{ received_count|to_nepali_number }} वटा दरभाउपत्र प्राप्त भई
+  {% if opening_date_nepali %}मिति {{ opening_date_nepali }} मा {% endif %}खोलिएको थियो ।
+  प्राप्त दरभाउपत्रको विवरण देहाय बमोजिम छ:
 </p>
 
 {% if extracted_bids %}
-<ul>
-  {% for bid in extracted_bids %}
-    <li>
-      {{ forloop.counter|to_nepali_number }}.
-      श्री {{ bid.firm_name }} —
-      रु {{ bid.bidded_price|to_nepali_number }} (भ्याट समेत)
-    </li>
-  {% endfor %}
-</ul>
+<table class="bids">
+  <thead>
+    <tr>
+      <th style="width: 60px;">क्र.सं.</th>
+      <th>फर्मको नाम</th>
+      <th>ठेगाना</th>
+      <th style="width: 170px;">कबोल रकम (भ्याट सहित)</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for bid in extracted_bids %}
+    <tr>
+      <td style="text-align: center;">{{ forloop.counter|to_nepali_number }}</td>
+      <td>{{ bid.firm_name }}{% if bid.lowest %} <strong>(न्यूनतम)</strong>{% endif %}</td>
+      <td>{{ bid.firm_address }}</td>
+      <td class="amt">रु. {{ bid.bidded_price|money:0 }}/-</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
 {% endif %}
+
+<p class="text-main">
+  प्राप्त दरभाउपत्रमध्ये सबैभन्दा न्यूनतम कबोल गर्ने
+  श्री {{ lowest_firm_name }}{% if lowest_firm_address %}, {{ lowest_firm_address }}{% endif %}
+  को रु. {{ lowest_bidded_price|money:0 }}/-
+  ({{ lowest_bidded_price|to_devanagari_words }})
+  {% if below_pct is not None %}{% if below_pct >= 0 %}(लागत अनुमानभन्दा {{ below_pct|floatformat:2|to_nepali_number }} प्रतिशत घटी){% else %}(लागत अनुमानभन्दा {{ below_pct|floatformat:2|cut:'-'|to_nepali_number }} प्रतिशत बढी){% endif %}{% endif %}
+  को दरभाउपत्र स्वीकृत गरी निजसँग सम्झौता गराई कार्यादेश दिन
+  उपयुक्त देखिएकोले निर्णयार्थ पेश गरेको छु ।
+</p>
 
 <!-- ================= SIGNATURE ================= -->
 <div class="signature-section">
@@ -186,176 +180,7 @@
   window.__letterPrint = function () {
     window.print();
     setTimeout(function () {
-      window.location.href = "/Quatation/Invite/Quatation/Project";
-    }, 1200);
-  };
-</script>
-
-</body>
-</html>/
-    @page {
-      size: A4;
-      margin-top: 40px;
-      margin-right: 40px;
-      margin-bottom: 40px;
-      margin-left: 0.7in;   /* Government punch margin */
-    }
-
-    body {
-      font-family: "Mangal", "Kalimati", Arial, sans-serif;
-      font-size: 15px;
-      color: #000;
-      line-height: 1.9;
-    }
-
-    /* ================= LETTER HEAD ================= */
-    .letter-head {
-      display: flex;
-      align-items: center;
-      gap: 15px;
-      color: #b91c1c;              /* Government red */
-      border-bottom: 2px solid #b91c1c;
-      padding-bottom: 10px;
-      margin-bottom: 18px;
-    }
-
-    .letter-head * {
-      color: #b91c1c !important;
-    }
-
-    .letter-head img {
-      width: 90px;
-    }
-
-    .letter-head-content {
-      flex-grow: 1;
-      text-align: center;
-      line-height: 1.3;
-    }
-
-    /* ================= META ================= */
-    .date-right {
-      text-align: right;
-      margin-bottom: 10px;
-    }
-
-    /* ================= SUBJECT ================= */
-    .subject {
-      text-align: center;
-      font-weight: bold;
-      text-decoration: underline;
-      margin: 20px 0;
-    }
-
-    /* ================= BODY ================= */
-    .text-main {
-      text-align: justify;
-    }
-
-    ul {
-      list-style: none;
-      padding-left: 0;
-      margin-top: 10px;
-    }
-
-    ul li {
-      margin-bottom: 6px;
-    }
-
-    /* ================= SIGN ================= */
-    .signature-section {
-      margin-top: 70px;
-      display: flex;
-      justify-content: space-between;
-      text-align: center;
-    }
-  </style>
-</head>
-
-<body>
-
-<!-- ================= LETTER HEAD ================= -->
-{% include 'includes/letterhead.html' with title="टिप्पणी र आदेश" %}
-{% editable_letter "quatation.approved_quatation_tippani.2" "दररेट स्वीकृत तथा कार्यादेश (2)" %}
-
-<!-- ================= DATE ================= -->
-<div class="date-right">
-  <strong>मिति:</strong> {{ application_date_nepali }}
-</div>
-
-<!-- ================= SUBJECT ================= -->
-<div class="subject">
-  विषयः दररेट स्वीकृत तथा सम्झौता गराई कार्यादेश सम्बन्धमा ।
-</div>
-
-<!-- ================= BODY ================= -->
-<p>श्रीमान्,</p>
-
-<p class="text-main">
-  छिपहरमाई {{ palika.palika_type }}को चालु आ. व.
-  {{ quatation.project.fiscalyear.name|to_nepali_number }}
-  को {{ palika.assembly }}बाट स्वीकृत बजेट अनुसार वडा नम्बर
-  {{ quatation.project.ward.name|to_nepali_number }}
-  मा वडा/पालिका स्तरीय योजना
-  <strong>{{ quatation.project.name }}</strong>
-  कार्यका लागि
-  रु {{ quatation.project.budget|to_nepali_number }}/-
-  ({{ quatation.project.budget|to_devanagari_words }})
-  विनियोजन गरी स्वीकृत गरिएको छ ।
-</p>
-
-<p class="text-main">
-  सो कार्यका लागि कार्यालयको प्राविधिक शाखाबाट
-  रु {{ quatation.cost_estimate|to_nepali_number }}
-  लागत अनुमान तयार गरी सूचीकृत फर्महरूसँग
-  दररेट माग गरिएकोमा सबैभन्दा न्यूनतम दररेट
-  श्री {{ lowest_firm_name }} {{ lowest_firm_address }}
-  ले पेश गरेको
-  रु {{ lowest_bidded_price|to_nepali_number }}/-
-  ({{ lowest_bidded_price|to_devanagari_words }})
-  स्वीकृत गरी सम्झौता गराई कार्यादेश दिन
-  उपयुक्त देखिएकोले निर्णयार्थ पेश गरिएको छ ।
-</p>
-
-{% if extracted_bids %}
-<ul>
-  {% for bid in extracted_bids %}
-    <li>
-      {{ forloop.counter|to_nepali_number }}.
-      श्री {{ bid.firm_name }} —
-      रु {{ bid.bidded_price|to_nepali_number }} (भ्याट समेत)
-    </li>
-  {% endfor %}
-</ul>
-{% endif %}
-
-<!-- ================= SIGNATURE ================= -->
-<div class="signature-section">
-  <div>
-    .....................<br>
-    योजना शाखा<br>
-    पेश गर्ने
-  </div>
-
-  <div>
-    .....................<br>
-    लेखा शाखा<br>
-    सिफारिस गर्ने
-  </div>
-
-  <div>
-    .........................<br>
-    प्रमुख प्रशासकीय अधिकृत<br>
-    सदर गर्ने
-  </div>
-</div>
-
-{% endeditable_letter %}
-<script>
-  window.__letterPrint = function () {
-    window.print();
-    setTimeout(function () {
-      window.location.href = "/Quatation/Invite/Quatation/Project";
+      window.location.href = "__WF_RETURN__";
     }, 1200);
   };
 </script>

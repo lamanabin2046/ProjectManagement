@@ -268,46 +268,39 @@ def SEND_QUATATION_LETTER(request, id):
 
 
 def APPROVED_QUATATION_TIPPANI(request, id):
+    """न्यूनतम दरभाउपत्र स्वीकृत गरी सम्झौता तथा कार्यादेशको टिप्पणी (प्राप्त सबै दरको तुलना सहित)."""
+    from datetime import date
+
+    from usercommittee.workflow import bs_date
+
+    from .workflow import bids
+
     quatation = get_object_or_404(Quation, id=id)
-
-    # Parse the JSON string from the 'bidded_prices' field
-    try:
-        bidded_prices = json.loads(quatation.bidded_prices)
-    except json.JSONDecodeError:
-        bidded_prices = {}
-
-    # Prepare the extracted data for passing to the template
+    firms = {f.firm_name: f for f in quatation.suchikrit.all()}
+    pairs = sorted(bids(quatation), key=lambda x: x[1])
     extracted_bids = []
-    for firm_name, bids in bidded_prices.items():
-        for bid in bids:
-            for firm, price in bid.items():
-                try:
-                    suchikrit_firm = Suchikrit.objects.get(firm_name=firm)
-                    firm_address = suchikrit_firm.firm_address
-                except Suchikrit.DoesNotExist:
-                    firm_address = "Address not found"
-                extracted_bids.append({
-                    "firm_name": firm,
-                    "bidded_price": price,
-                    "firm_address": firm_address,
-                })
-
-    # Find the lowest bidded_price and associated firm_name
-    if extracted_bids:
-        lowest_bid = min(extracted_bids, key=lambda x: x["bidded_price"])
-        lowest_firm_name = lowest_bid["firm_name"]
-        lowest_firm_address = lowest_bid["firm_address"]
-        lowest_bidded_price = lowest_bid["bidded_price"]
-    else:
-        lowest_firm_name = None
-        lowest_bidded_price = None
+    for i, (firm, price) in enumerate(pairs):
+        f = firms.get(firm) or Suchikrit.objects.filter(firm_name=firm).first()
+        extracted_bids.append({"firm_name": firm, "bidded_price": price, "firm_address": f.firm_address if f else "",
+                               "lowest": i == 0})
+    lowest = extracted_bids[0] if extracted_bids else {}
+    approval = getattr(quatation, "approval", None)
+    estimate = quatation.cost_estimate or 0
+    below = round((estimate - lowest["bidded_price"]) * 100 / estimate, 2) if lowest and estimate else None
 
     context = {
         "quatation": quatation,
         "extracted_bids": extracted_bids,
-        "lowest_firm_name": lowest_firm_name,
-        "lowest_bidded_price": lowest_bidded_price,
-        "lowest_firm_address":lowest_firm_address
+        "lowest_firm_name": lowest.get("firm_name"),
+        "lowest_bidded_price": lowest.get("bidded_price"),
+        "lowest_firm_address": lowest.get("firm_address", ""),
+        "below_pct": below,
+        "invited_count": len(firms),
+        "received_count": len(pairs),
+        "invite_date_nepali": bs_date(quatation.invite_date),
+        "opening_date_nepali": bs_date(quatation.opening_date),
+        # टिप्पणीको मिति: स्वीकृत भएको मिति, नभए आज
+        "application_date_nepali": bs_date(approval.approved_at.date() if approval else date.today()),
     }
     return render(request, "Admin/Quatation/approved_quatation_tippani.html", context)
 
@@ -786,8 +779,9 @@ def PRINT_QUATATION_FINAL_PAYMENT_TIPPANI(request, id):
                 lowest_firm = list(lowest_bid.keys())[0]
                 lowest_price = list(lowest_bid.values())[0]
 
-        # Get firm addresses from Suchikrit
-        firm_addresses = ", ".join([firm.firm_address for firm in quation.suchikrit.all()])
+        # स्वीकृत (न्यूनतम) फर्मको ठेगाना मात्र
+        winner = quation.suchikrit.filter(firm_name=lowest_firm).first() if lowest_firm else None
+        firm_addresses = winner.firm_address if winner else ""
 
         # Prepare data for the template
         data = {
@@ -806,6 +800,7 @@ def PRINT_QUATATION_FINAL_PAYMENT_TIPPANI(request, id):
             'total_valuation': qfinal.totalValuation,
             'retention': qfinal.retension,
             'tax_deduction': qfinal.taxdeduction,
+            'advance': qfinal.advance_deducted or 0,
             'ward':quation.project.ward.name
         }
 
@@ -833,3 +828,27 @@ def VIEW_ESTIMATED_PROJECT(request):
     }
     
     return render(request,"Admin/User/view_estimated_project.html",context)
+
+
+def PRINT_QUATATION_ADVANCE_TIPPANI(request, id):
+    """दरभाउपत्र: अग्रिम भुक्तानी स्वीकृत गर्ने टिप्पणी (बैंक जमानत सहित)."""
+    import datetime
+
+    from usercommittee.workflow import bs_date
+
+    from .models import QuationAdvance
+    from .workflow import lowest
+
+    advance = get_object_or_404(QuationAdvance.objects.select_related("quation__project"), id=id)
+    quation = advance.quation
+    firm_name, price = lowest(quation)
+    firm = quation.suchikrit.filter(firm_name=firm_name).first() if firm_name else None
+    return render(request, "Admin/Quatation/print_quatation_advance_tippani.html", {
+        "advance": advance, "quatation": quation, "project": quation.project,
+        "firm_name": firm_name, "firm_address": firm.firm_address if firm else "", "agreed_amount": price,
+        "today_nepali": bs_date(datetime.date.today()),
+        "agreement_date_nepali": bs_date(quation.agreement_date),
+        "approval_date_nepali": bs_date(advance.approval_date),
+        "issue_date_nepali": bs_date(advance.issue_date),
+        "expiry_date_nepali": bs_date(advance.expiry_date),
+    })

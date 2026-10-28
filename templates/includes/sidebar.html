@@ -46,27 +46,8 @@
       </li>
 
       {% include 'includes/_bid_menu.html' %}
+      {% include 'includes/_quot_menu.html' %}
       {% include 'includes/_reports_menu.html' %}
-
-      {% comment %} दरभाउपत्र खरिद व्यवस्थापन {% endcomment %}
-      <li class="sidebar-group">
-        <button type="button" onclick="toggleSubmenu(this)"
-                class="nav-link-item w-full">
-          <i data-lucide="clipboard-list" class="nav-icon"></i>
-          <span class="sidebar-label flex-1 text-left">दरभाउपत्र खरिद व्यवस्थापन</span>
-          <i data-lucide="chevron-right" class="menu-arrow"></i>
-        </button>
-        <ul class="submenu-panel {% if current not in 'add_suchikrit_list,view_suchikrit_list,invite_quatation,view_quatation_projects,add_quatation_final_payment_sidebar,view_quatation_final_payment_sidebar' %}hidden{% endif %} mt-1 ml-5 pl-3 border-l border-white/10 space-y-0.5">
-          <li><a href="{% url 'add_suchikrit_list' %}" class="submenu-link {% if current == 'add_suchikrit_list' %}active{% endif %}"><i data-lucide="user-check" class="sub-icon"></i><span>सिचिकृत गर्नुहोस</span></a></li>
-          <li><a href="{% url 'view_suchikrit_list' %}" class="submenu-link {% if current == 'view_suchikrit_list' %}active{% endif %}"><i data-lucide="list-checks" class="sub-icon"></i><span>सिचिकृत विवरण</span></a></li>
-          <li><a href="{% url 'invite_quatation' %}" class="submenu-link {% if current == 'invite_quatation' %}active{% endif %}"><i data-lucide="mail-open" class="sub-icon"></i><span>प्रस्ताव माग गर्नुहोस</span></a></li>
-          <li><a href="{% url 'view_quatation_projects' %}" class="submenu-link {% if current == 'view_quatation_projects' %}active{% endif %}"><i data-lucide="clipboard-check" class="sub-icon"></i><span>प्रस्ताव विवरण</span></a></li>
-          <li><a href="{% url 'add_quatation_final_payment_sidebar' %}" class="submenu-link {% if current == 'add_quatation_final_payment_sidebar' %}active{% endif %}"><i data-lucide="indian-rupee" class="sub-icon"></i><span>अन्तिम विल प्रवेष्टी</span></a></li>
-          <li><a href="{% url 'view_quatation_final_payment_sidebar' %}" class="submenu-link {% if current == 'view_quatation_final_payment_sidebar' %}active{% endif %}"><i data-lucide="chart-column" class="sub-icon"></i><span>अन्तिम विल विवरणहरु</span></a></li>
-        </ul>
-      </li>
-
-
 
       {% comment %} पालिका स्तरीय प्रतिवेदनहरू (सबै वडा) {% endcomment %}
       <li class="sidebar-group">
@@ -138,6 +119,7 @@
         </a>
       </li>
       {% include 'includes/_bid_menu.html' %}
+      {% include 'includes/_quot_menu.html' %}
 
       <li class="sidebar-group">
         <button type="button" onclick="toggleSubmenu(this)"
@@ -217,6 +199,7 @@
         </a>
       </li>
       {% include 'includes/_bid_menu.html' %}
+      {% include 'includes/_quot_menu.html' %}
       {% include 'includes/_reports_menu.html' %}
     </ul>
 
@@ -311,6 +294,7 @@
         </a>
       </li>
       {% include 'includes/_bid_menu.html' %}
+      {% include 'includes/_quot_menu.html' %}
       {% include 'includes/_reports_menu.html' %}
     </ul>
 
@@ -334,6 +318,7 @@
       </li>
       {% endif %}
       {% include 'includes/_bid_menu.html' %}
+      {% include 'includes/_quot_menu.html' %}
       {% include 'includes/_reports_menu.html' %}
     </ul>
     {% endif %}

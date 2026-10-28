@@ -3,6 +3,7 @@
 {% load letters %}
 {% load nepali_date %}
 {% load nepali_filters %}
+{% load outputs %}
 <html lang="ne">
 <head>
   <meta charset="UTF-8">
@@ -117,7 +118,7 @@
   र यस कार्यालयबीच मिति
   {{ data.start_date_nepali|nepali_date }}
   गते सम्पन्न सम्झौता अनुसार
-  जम्मा रु {{ data.lowest_bidded_price|to_nepali_number }}
+  जम्मा रु. {{ data.lowest_bidded_price|money:0 }}/-
   (भ्याट समेत) मा कार्य सम्पन्न गर्न
   कार्यादेश दिइएको थियो ।
 </p>
@@ -125,7 +126,8 @@
 <p class="text-main">
   सोही अनुसार प्राविधिक मूल्याङ्कन गरी अन्तिम बिल
   तथा बिल भर्पाई संलग्न राखी भुक्तानी माग गरिएकोमा
-  प्राविधिक मूल्याङ्कन अनुसार ५% धरौटी कट्टा गरी
+  प्राविधिक मूल्याङ्कन अनुसार ५% धरौटी कट्टा गरी{% if data.advance %}
+  तथा दिइसकेको अग्रिम भुक्तानी रु. {{ data.advance|money:0 }}/- समायोजन गरी{% endif %}
   बाँकी रकममा नियमानुसार कर कट्टा गरी
   निज फर्मको बैंक खातामार्फत भुक्तानी दिन
   उपयुक्त देखिएकोले निर्णयार्थ पेश गरिएको छ ।
@@ -134,10 +136,11 @@
 <!-- ================= DETAILS ================= -->
 <div class="details">
   <p><strong>तपशील :</strong></p>
-  <p>प्राविधिकबाट आएको अन्तिम मूल्याङ्कन रकम : रु {{ data.total_valuation|to_nepali_number }}</p>
-  <p>रिटेन्सन (५%) रकम : रु {{ data.retention|to_nepali_number }}</p>
-  <p>आयकर कट्टी रकम : रु {{ data.tax_deduction|to_nepali_number }}</p>
-  <p><strong>भुक्तानी दिने खुद रकम : रु {{ data.final_payment|to_nepali_number }}</strong></p>
+  <p>प्राविधिकबाट आएको अन्तिम मूल्याङ्कन रकम : रु. {{ data.total_valuation|money }}</p>
+  <p>रिटेन्सन (५%) रकम : रु. {{ data.retention|money }}</p>
+  <p>आयकर कट्टी रकम : रु. {{ data.tax_deduction|money }}</p>
+  {% if data.advance %}<p>अग्रिम भुक्तानी कट्टी रकम : रु. {{ data.advance|money }}</p>{% endif %}
+  <p><strong>भुक्तानी दिने खुद रकम : रु. {{ data.final_payment|money }}</strong></p>
 </div>
 
 <!-- ================= SIGNATURE ================= -->
@@ -166,7 +169,7 @@
   window.__letterPrint = function () {
     window.print();
     setTimeout(function () {
-      window.location.href = "/Quatation/View/Final/Payments/";
+      window.location.href = "__WF_RETURN__";
     }, 1200);
   };
 </script>

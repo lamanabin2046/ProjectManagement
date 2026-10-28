@@ -6,9 +6,9 @@
 <div class="max-w-5xl mx-auto space-y-4">
   <div class="flex flex-wrap items-start justify-between gap-3">
     <div>
-      <p class="text-xs font-medium text-brand-700"><i class="fas fa-file-contract"></i> बोलपत्र ठेक्का</p>
+      <p class="text-xs font-medium text-brand-700"><i class="fas fa-file-contract"></i> {{ module_label|default:"बोलपत्र ठेक्का" }}</p>
       <h1 class="text-lg md:text-xl font-bold text-slate-800 mt-0.5"><i class="fas fa-{{ icon }} text-brand-500"></i> {{ title }}</h1>
-      <p class="text-sm text-slate-500 mt-0.5">{{ project.name }}{% if project.ward %} · वडा नं. {{ project.ward.name|to_nepali_number }}{% endif %}{% if bid %} · ठेक्का नं. {{ bid.bidding_number }}{% endif %}</p>
+      <p class="text-sm text-slate-500 mt-0.5">{{ project.name }}{% if project.ward %} · वडा नं. {{ project.ward.name|to_nepali_number }}{% endif %}{% if bid.bidding_number %} · ठेक्का नं. {{ bid.bidding_number }}{% endif %}</p>
     </div>
     <a href="{{ back }}" class="btn-secondary"><i class="fas fa-arrow-left"></i> कार्यप्रवाहमा फर्कनुहोस्</a>
   </div>
@@ -21,13 +21,21 @@
   </div>
   {% endif %}
 
+  {% if cards %}
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+    {% for c in cards %}
+    <div class="card p-3 {% if c.wide %}col-span-2{% endif %}"><p class="text-[11px] text-slate-500">{{ c.label }}</p><p class="font-semibold {% if c.brand %}text-brand-700{% else %}text-slate-800{% endif %} truncate">{{ c.value }}</p>{% if c.sub %}<p class="text-[11px] text-slate-400 truncate">{{ c.sub }}</p>{% endif %}</div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
   {% if errors %}
   <div class="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 space-y-0.5">
     {% for e in errors %}<p class="text-sm text-rose-700"><i class="fas fa-circle-exclamation"></i> {{ e }}</p>{% endfor %}
   </div>
   {% endif %}
   {% if note %}
-  <div class="rounded-xl border border-brand-100 bg-brand-50/60 px-4 py-2.5 text-sm text-brand-900"><i class="fas fa-circle-info text-brand-500"></i> {{ note }}</div>
+  <div class="rounded-xl border border-brand-100 bg-brand-50/60 px-4 py-2.5 text-sm text-brand-900"><i class="fas fa-circle-info text-brand-500"></i> {{ note }}{% if note_link %} <a href="{{ note_link.url }}" class="font-semibold text-brand-700 underline whitespace-nowrap"><i class="fas fa-plus"></i> {{ note_link.label }}</a>{% endif %}</div>
   {% endif %}
 
   <div class="card">
@@ -46,6 +54,17 @@
               <div class="relative">
                 <input type="text" id="f-{{ fld.name }}" name="{{ fld.name }}" value="{{ fld.value }}" class="form-input nepali-date !pr-9" placeholder="YYYY-MM-DD" autocomplete="off" {% if fld.required %}required{% endif %}>
                 <i class="far fa-calendar absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"></i>
+              </div>
+              {% elif fld.kind == 'checks' %}
+              <div class="rounded-xl border border-slate-200 divide-y divide-slate-100 max-h-80 overflow-y-auto">
+                {% for o in fld.options %}
+                <label class="flex items-start gap-3 px-3 py-2.5 hover:bg-slate-50 cursor-pointer">
+                  <input type="checkbox" name="{{ fld.name }}" value="{{ o.value }}" class="form-check mt-0.5" {% if o.checked %}checked{% endif %}>
+                  <span class="min-w-0"><span class="block text-sm font-medium text-slate-800">{{ o.label }}</span>{% if o.sub %}<span class="block text-[11px] text-slate-400">{{ o.sub }}</span>{% endif %}</span>
+                </label>
+                {% empty %}
+                <p class="px-3 py-4 text-sm text-slate-400">सूची खाली छ।</p>
+                {% endfor %}
               </div>
               {% elif fld.kind == 'file' %}
               <input type="file" id="f-{{ fld.name }}" name="{{ fld.name }}" accept=".pdf,.jpg,.jpeg,.png" class="form-input file:mr-3 file:rounded-md file:border-0 file:bg-brand-50 file:text-brand-700 file:px-3 file:py-1.5 file:text-xs file:font-semibold">
@@ -95,6 +114,9 @@
       if (src === 'total_evaluated_amount') set('payable_amount', Math.max(num('total_evaluated_amount') - {{ prev_cum|default:0|stringformat:'s' }}, 0));
       var ded = num('advance_adjusted') + num('agrim_tax') + num('vat_deduction') + num('dharauti_deduction') + num('bahal_tax');
       set('net_payable', num('payable_amount') - ded);
+    } else if (script === 'quot_final') {
+      if (src === 'totalValuation') set('retension', num('totalValuation') * 0.05);
+      if (src !== 'finalpayment' && form.dataset.manual !== '1') set('finalpayment', num('totalValuation') - num('retension') - num('taxdeduction') - {{ calc.advance|default:0 }});
     } else if (script === 'final') {
       if (form.dataset.manual === '1' && src !== 'final_amount') return;
       var base = num('total_evaluation_amount') - {{ calc.run_gross|default:0 }} - {{ calc.adv_left|default:0 }};
@@ -104,9 +126,10 @@
   }
   form.addEventListener('input', function (e) {
     if (script === 'final' && e.target.name === 'final_amount') { form.dataset.manual = '1'; return; }
+    if (script === 'quot_final' && e.target.name === 'finalpayment') { form.dataset.manual = '1'; return; }
     calc(e);
   });
-  if (script && script !== 'final') calc();
+  if (script && script !== 'final' && script !== 'quot_final') calc();
   if (script === 'final' && !form.elements['final_amount'].value) calc();
 })();
 </script>

@@ -26,6 +26,10 @@ class Quation(models.Model):
     bidded_prices = models.JSONField(null=True, blank=True)  # Field to store all bidded prices
     agreement_date = models.DateField(null=True)
     expire_date = models.DateField(null=True)
+    # कार्यप्रवाह: आह्वान र प्राप्ति मितिहरू
+    invite_date = models.DateField("आह्वान मिति", null=True, blank=True)
+    submission_deadline = models.DateField("दरभाउपत्र पेश गर्ने अन्तिम मिति", null=True, blank=True)
+    opening_date = models.DateField("दरभाउपत्र खोलेको मिति", null=True, blank=True)
 
     def __str__(self):
         return f"{self.project.name} - {', '.join([firm.firm_name for firm in self.suchikrit.all()])}"
@@ -46,7 +50,76 @@ class QuationFinal(models.Model):
     retension = models.FloatField(null=True)
     taxdeduction = models.FloatField(null=True)
     finalpayment = models.FloatField(null=True)
+    advance_deducted = models.FloatField("अग्रिम कट्टी", default=0)
     
     def __str__(self):
         return f"{self.quation.project.name} - {self.finalpayment}"
 
+
+
+# ================= कार्यप्रवाह (workflow) =================
+from django.conf import settings as _settings
+
+
+class QuationApproval(models.Model):
+    """न्यूनतम दरभाउपत्र स्वीकृत (प्रमुख प्रशासकीय अधिकृत वा अनुमति पाएका)."""
+    quation = models.OneToOneField(Quation, on_delete=models.CASCADE, related_name="approval")
+    approved_by = models.ForeignKey(_settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+                                    related_name="+")
+    approver_name = models.CharField(max_length=200, blank=True)
+    approver_post = models.CharField(max_length=200, blank=True)
+    firm_name = models.CharField("स्वीकृत फर्म", max_length=250, blank=True)
+    amount = models.DecimalField("स्वीकृत रकम", max_digits=14, decimal_places=2, null=True, blank=True)
+    remarks = models.TextField(blank=True)
+    approved_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"स्वीकृत – {self.quation}"
+
+
+class QuationPrint(models.Model):
+    """दरभाउपत्रका कागजात छापिएको अभिलेख — कार्यप्रवाहमा चरण पूरा देखाउन."""
+    DOC_CHOICES = (
+        ("invite_tippani", "आह्वान टिप्पणी"),
+        ("invite_letter", "आह्वान पत्र"),
+        ("approval_tippani", "स्वीकृति टिप्पणी"),
+        ("agreement", "सम्झौता"),
+        ("work_order", "कार्यादेश"),
+        ("final_tippani", "अन्तिम भुक्तानी टिप्पणी"),
+    )
+    quation = models.ForeignKey(Quation, on_delete=models.CASCADE, related_name="prints")
+    doc_type = models.CharField(max_length=30, choices=DOC_CHOICES)
+    printed_by = models.ForeignKey(_settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+                                   related_name="+")
+    printed_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["printed_at"]
+
+
+class QuationAdvance(models.Model):
+    """अग्रिम भुक्तानी (पेश्की) र त्यसको बैंक जमानत — बोलपत्रकै जस्तो; अन्तिम बिलमा कट्टी हुन्छ."""
+    quation = models.ForeignKey(Quation, on_delete=models.CASCADE, related_name="advances")
+    approved_amount = models.DecimalField("अग्रिम रकम", max_digits=14, decimal_places=2)
+    approval_date = models.DateField("स्वीकृत मिति")
+    remarks = models.TextField(blank=True)
+    # अग्रिम भुक्तानी जमानत (बैंक ग्यारेन्टी)
+    bank_name = models.CharField("बैंक", max_length=250)
+    guarantee_number = models.CharField("जमानत नम्बर", max_length=250)
+    guaranteed_amount = models.DecimalField("जमानत रकम", max_digits=14, decimal_places=2)
+    issue_date = models.DateField("जारी मिति")
+    expiry_date = models.DateField("म्याद")
+    document = models.FileField(upload_to="advance_guarantees/", null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["approval_date", "id"]
+
+    @property
+    def days_left(self):
+        from datetime import date
+
+        return (self.expiry_date - date.today()).days
+
+    def __str__(self):
+        return f"अग्रिम – {self.quation.project.name} ({self.approved_amount})"
