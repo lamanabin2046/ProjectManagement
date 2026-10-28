@@ -369,7 +369,6 @@ def add_usercommittee(request, project_id=None):
             status=1,
         )
         apply_roster(new_committee, rows)
-        apply_bank(new_committee, request.POST)
         new_committee.save()
         sync_members(new_committee, rows, request.user)
         log_activity(request, "create", new_committee, "उपभोक्ता समिति")
@@ -507,7 +506,7 @@ def add_cost_estimate(request, project_id=None):
             messages.success(request, "लागत अनुमान सफलतापूर्वक थपियो ✅")
             return redirect("palika_engineer_project_list")
 
-        messages.success(request, "Cost estimate added successfully.")
+        messages.success(request, "लागत अनुमान सफलतापूर्वक थपियो ✅")
         return redirect("view_estimated_projects")
 
     # ================= GET =================
@@ -1620,7 +1619,7 @@ def add_final_valuation(request):
             cost_estimate.save()
             log_activity(request, "update", cost_estimate, "लागत अनुमान", note="अन्तिम भुक्तानी दर्ता भएपछि स्थिति अद्यावधिक भयो")
 
-            messages.success(request, "Final valuation successfully saved ✅")
+            messages.success(request, "अन्तिम मूल्याङ्कन सुरक्षित भयो ✅")
             return redirect("view_final_valuation")
 
         except (InvalidOperation, ValueError) as e:
@@ -1683,7 +1682,7 @@ def edit_final_valuation(request, id):
             final_valuation.save()
             log_activity(request, "update", final_valuation, "अन्तिम भुक्तानी/मूल्याङ्कन")
 
-            messages.success(request, "Final valuation successfully updated ✅")
+            messages.success(request, "अन्तिम मूल्याङ्कन सच्याइयो ✅")
             return redirect("view_final_valuation")
 
         except (InvalidOperation, ValueError) as e:
@@ -1900,7 +1899,6 @@ def edit_usercommittee(request, id):
         "accomplish_date_nepali": convert_english_to_nepali(usercommittee.accomplish_date),
         "extended_date_nepali": convert_english_to_nepali(usercommittee.extended_date),
         **roster_ctx(roster_rows(usercommittee) or default_rows(), usercommittee.id),
-        "bank_opened_bs": convert_english_to_nepali(usercommittee.account_opened_date) if usercommittee.account_opened_date else "",
     }
 
     return render(
@@ -1948,7 +1946,6 @@ def update_usercommittee(request):
             **roster_ctx(rows or default_rows(), usercommittee.id),
         })
     apply_roster(usercommittee, rows)
-    apply_bank(usercommittee, request.POST)
 
     # ================= DATES =================
     usercommittee.formation_date = convert_nepali_to_english(

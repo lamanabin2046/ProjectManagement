@@ -151,6 +151,12 @@ def sifaris_view_action(rec, project, portal_url_name):
     return _link("सिफारिस पत्र", portal_url_name, project.id, new_tab=True)
 
 
+def add_next(url, return_to):
+    from urllib.parse import quote
+
+    return url + ("&" if "?" in url else "?") + "next=" + quote(return_to, safe="/")
+
+
 def with_next(steps, return_to):
     """Add ?next=<return_to> to the form links (not print links) so saving a form
     brings the user back to the workflow page."""
@@ -161,7 +167,7 @@ def with_next(steps, return_to):
     for st in steps:
         for a in st.get("actions", []):
             if not a["new_tab"] and not a.get("inline") and not a.get("modal"):
-                a["url"] += ("&" if "?" in a["url"] else "?") + "next=" + quote(return_to, safe="/")
+                a["url"] = add_next(a["url"], return_to)
     return steps
 
 
@@ -258,6 +264,9 @@ def project_workflow(project, user_type=None, user=None):
         for doc, label, url_name in AGREEMENT_DOCS:
             actions.append(_link(("✓ " if doc in prints else "") + label, url_name, project.id, new_tab=True,
                                  primary=doc not in prints))
+    if (approval or printed) and committee is not None and P & {"uc.agreement_print", "uc.valuation", "uc.committee"}:
+        actions.append(_link(("✓ " if committee.has_bank_account else "") + "बैंक खाता विवरण", "uc_bank_account",
+                             project.id, primary=False))
     first_print = min((prints[d].printed_at for d in printed), default=None)
     s["agreement"] = {"done": DocumentPrint.CONTRACT in prints and DocumentPrint.WORK_ORDER in prints,
                       "date": first_print.date() if first_print else None,

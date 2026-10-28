@@ -18,7 +18,7 @@ from projects.models import FiscalYear, project_uc_mode
 
 from .models import Person, ProjectCompletionRecommendation, UCApproval, WardRecommendation
 from .roster import DOC_KINDS, gender_summary, roster_rows
-from .workflow import (COLUMNS, MODE_LABELS, approver_identity, bs_date, can_approve, project_workflow,
+from .workflow import (COLUMNS, add_next, MODE_LABELS, approver_identity, bs_date, can_approve, project_workflow,
                        row_cells, with_next, workflow_queryset)
 
 ALLOWED = {"1", "2", "3", "4", "5", "6", "7", "8", "9"}
@@ -60,10 +60,31 @@ def _return_to(request):
     return reverse("usercommittee_workflow")
 
 
-def _back_to_page(request):
+def with_open(url, project_id):
+    """Workflow URL + ?open=<project_id> (फर्केपछि त्यही योजनाको panel आफैँ खुल्छ)."""
+    from urllib.parse import parse_qsl, urlencode
+
+    parts = urlparse(url)
+    if parts.path.rstrip("/") != reverse("usercommittee_workflow").rstrip("/"):
+        return url
+    query = [(k, v) for k, v in parse_qsl(parts.query, keep_blank_values=True) if k != "open"]
+    query.append(("open", str(project_id)))
+    return parts.path + "?" + urlencode(query)
+
+
+def _strip_open(url):
+    from urllib.parse import parse_qsl, urlencode
+
+    parts = urlparse(url)
+    query = [(k, v) for k, v in parse_qsl(parts.query, keep_blank_values=True) if k != "open"]
+    return parts.path + ("?" + urlencode(query) if query else "")
+
+
+def _back_to_page(request, project_id=None):
     """After an HTMX form in the panel succeeds: reload the workflow page (shows the message)."""
     response = HttpResponse(status=204)
-    response["HX-Redirect"] = _return_to(request)
+    url = _return_to(request)
+    response["HX-Redirect"] = with_open(url, project_id) if project_id else url
     return response
 
 
@@ -120,19 +141,41 @@ def workflow_list(request):
         per_page = 25
     per_page = per_page if per_page in (10, 25, 50, 100) else 25
     page = Paginator(rows, per_page).get_page(request.GET.get("page"))
+    page_rows = list(page.object_list)
+
+    # ?open=<id>: फारम सुरक्षित गरेर फर्केपछि त्यही योजनाको panel आफैँ खोल्ने (अर्को पेज/फिल्टरमा भए पनि)
+    open_id = request.GET.get("open", "")
+    open_id = int(open_id) if open_id.isdigit() else None
+    if open_id and not any(r["project"].id == open_id for r in page_rows):
+        row = next((r for r in rows if r["project"].id == open_id), None)
+        if row is None:
+            base, _w = _scoped(request)
+            project = base.filter(id=open_id).first()
+            if project is not None:
+                steps, summary = project_workflow(project, request.user.user_type, request.user)
+                row = {"project": project, "steps": steps, "cells": row_cells(steps), "summary": summary,
+                       "waiting_me": summary["current_key"] == "approval"
+                                     and can_approve(request.user, project, summary["mode"])}
+        if row is not None:
+            page_rows.insert(0, row)
+        else:
+            open_id = None
+
     keep = request.GET.copy()
     keep.pop("page", None)
+    keep.pop("open", None)
     tenant = getattr(request, "tenant", None)
     ctx = {
         "page": page,
-        "rows": page.object_list,
+        "rows": page_rows,
+        "open_id": open_id,
         "columns": COLUMNS,
         "counts": counts,
         "wards": Ward.objects.filter(id__in=wards) if wards is not None else Ward.objects.all(),
         "fiscal_years": FiscalYear.objects.all().order_by("-name"),
         "f": {"q": q, "ward": ward, "fiscalyear": fy, "stage": stage, "mode": mode_f, "per_page": per_page},
         "keep_qs": keep.urlencode(),
-        "return_to": request.get_full_path(),
+        "return_to": _strip_open(request.get_full_path()),
         "palika_mode": getattr(tenant, "uc_mode", "municipal"),
         "mode_labels": MODE_LABELS,
         "is_approver": bool(user_perms(request.user) & {"uc.approve", "uc.approve_ward"}),
@@ -148,7 +191,9 @@ def workflow_detail(request, project_id):
     qs, _ = _scoped(request)
     project = get_object_or_404(qs, id=project_id)
     steps, summary = project_workflow(project, request.user.user_type, request.user)
-    with_next(steps + [{"actions": summary["progress"]["actions"]}], _return_to(request))
+    with_next(steps + [{"actions": summary["progress"]["actions"]}], with_open(_return_to(request), project.id))
+    if summary.get("installments"):
+        summary["installments"]["url"] = add_next(summary["installments"]["url"], with_open(_return_to(request), project.id))
     focus = request.GET.get("step")
     return render(request, "Admin/User/_workflow_detail.html", {
         "project": project, "steps": steps, "summary": summary,
@@ -244,7 +289,7 @@ def approve(request, project_id):
                                   approver_name=name, approver_post=post,
                                   remarks=request.POST.get("remarks", "").strip())
         messages.success(request, f"“{project.name}” रुजु / स्वीकृत भयो। अब सम्झौता र कार्यादेश तयार गर्न सकिन्छ।")
-        return _back_to_page(request)
+        return _back_to_page(request, project.id)
 
     name, post = approver_identity(request.user, mode)
     return render(request, "Admin/User/_wf_approve_modal.html",
@@ -330,7 +375,7 @@ def sifaris_upload(request, project_id, kind):
                 remarks=request.POST.get("remarks", "").strip(),
             )
             messages.success(request, f"“{project.name}” को {title} अपलोड भयो।")
-            return _back_to_page(request)
+            return _back_to_page(request, project.id)
 
     return render(request, "Admin/User/_wf_sifaris_form.html", {
         "project": project, "kind": kind, "title": title, "errors": errors,

@@ -16,8 +16,8 @@
   <div class="card p-4"><p class="text-xs text-slate-500">किस्तामा दिइएको</p><p class="text-lg font-bold text-brand-700">रु. {{ paid|floatformat:2|to_nepali_number }}</p><p class="text-[11px] text-slate-400">{{ rows|length|to_nepali_number }} किस्ता</p></div>
   <div class="card p-4"><p class="text-xs text-slate-500">बाँकी (अन्तिम भुक्तानीमा)</p><p class="text-lg font-bold text-emerald-700">रु. {{ remaining|floatformat:2|to_nepali_number }}</p></div>
   <div class="card p-4"><p class="text-xs text-slate-500">भुक्तानी जाने खाता</p>
-    {% if committee.has_bank_account %}<p class="text-sm font-semibold text-slate-800">{{ committee.bank_name }}{% if committee.bank_branch %}, {{ committee.bank_branch }}{% endif %}</p><p class="text-xs text-slate-500">खाता नं. {{ committee.account_number }}</p>
-    {% else %}<p class="text-sm text-amber-700"><i class="fas fa-triangle-exclamation"></i> बैंक खाता राखिएको छैन</p>{% if committee %}<a href="{% url 'edit_usercommittee' committee.id %}" class="text-xs text-brand-700 hover:underline">समिति सम्पादनमा राख्नुहोस्</a>{% endif %}{% endif %}
+    {% if committee.has_bank_account %}<p class="text-sm font-semibold text-slate-800">{{ committee.bank_name }}{% if committee.bank_branch %}, {{ committee.bank_branch }}{% endif %}</p><p class="text-xs text-slate-500">खाता नं. {{ committee.account_number }} · <a href="{% url 'uc_bank_account' project.id %}?next={{ request.path|urlencode }}" class="text-brand-700 hover:underline">बदल्नुहोस्</a></p>
+    {% else %}<p class="text-sm text-amber-700"><i class="fas fa-triangle-exclamation"></i> बैंक खाता राखिएको छैन</p>{% if committee %}<a href="{% url 'uc_bank_account' project.id %}?next={{ request.path|urlencode }}" class="text-xs text-brand-700 hover:underline">खाता विवरण राख्नुहोस्</a>{% endif %}{% endif %}
   </div>
 </div>
 

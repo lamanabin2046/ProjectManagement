@@ -139,7 +139,7 @@
       <tbody>
       {% for row in rows %}
         {% with p=row.project s=row.summary %}
-        <tr class="border-t border-slate-100 hover:bg-slate-50/60">
+        <tr class="border-t border-slate-100 hover:bg-slate-50/60{% if open_id == p.id %} bg-brand-50/50{% endif %}" {% if open_id == p.id %}id="wf-open-row"{% endif %}>
           <td class="px-4 py-4">
             <button type="button" class="text-left font-medium text-slate-800 hover:text-brand-600"
                     hx-get="{% url 'usercommittee_workflow_detail' p.id %}" hx-target="#wf-detail-{{ p.id }}" hx-swap="innerHTML">
@@ -193,7 +193,7 @@
             {% endif %}
           </td>
         </tr>
-        <tr><td colspan="17" class="p-0"><div id="wf-detail-{{ p.id }}"></div></td></tr>
+        <tr><td colspan="17" class="p-0"><div id="wf-detail-{{ p.id }}"{% if open_id == p.id %} hx-get="{% url 'usercommittee_workflow_detail' p.id %}" hx-trigger="load" hx-swap="innerHTML"{% endif %}></div></td></tr>
         {% endwith %}
       {% empty %}
         <tr><td colspan="17" class="px-4 py-14 text-center text-slate-500">
@@ -256,5 +256,15 @@
   <span class="flex items-center gap-1.5"><i class="fas fa-camera text-emerald-600"></i> काम प्रगति फोटो (ऐच्छिक)</span>
   <span class="ml-auto">गोलो थिच्दा त्यो चरणको विवरण र काम खुल्छ।</span>
 </div>
+{% if open_id %}
+<script>
+  (function () {
+    var row = document.getElementById('wf-open-row');
+    if (row) { setTimeout(function () { row.scrollIntoView({ block: 'start', behavior: 'smooth' }); }, 150); }
+    // ठेगानाबाट open= हटाउने (reload गर्दा फेरि नखुलोस्)
+    try { var u = new URL(location.href); u.searchParams.delete('open'); history.replaceState(history.state, '', u.pathname + u.search); } catch (e) {}
+  })();
+</script>
+{% endif %}
 </div>{# /#wf-results #}
 {% endblock %}

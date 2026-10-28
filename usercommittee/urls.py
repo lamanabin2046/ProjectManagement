@@ -18,6 +18,7 @@ urlpatterns = [
     path('add/<int:project_id>/', views.add_usercommittee, name='add_usercommittee_for_project'),
     path('nid-lookup/', views.nid_lookup, name='uc_nid_lookup'),
     path('tax-heads/', views.tax_heads_page, name='tax_heads'),
+    path('Workflow/<int:project_id>/bank-account/', views_installments.bank_account, name='uc_bank_account'),
     path('Workflow/<int:project_id>/installments/', views_installments.installments, name='uc_installments'),
     path('Workflow/<int:project_id>/installments/<int:inst_id>/', views_installments.installments, name='uc_installment_edit'),
     path('Print/Installment/<int:inst_id>/', views_installments.print_installment, name='uc_print_installment'),

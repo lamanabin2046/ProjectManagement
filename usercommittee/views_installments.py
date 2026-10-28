@@ -165,3 +165,46 @@ def print_installment(request, inst_id):
         "previous": previous, "previous_total": previous.aggregate(t=Sum("amount"))["t"] or 0,
         "share": office_share(project), "date_bs": bs_date(inst.date),
     })
+
+
+@login_required
+def bank_account(request, project_id):
+    """सम्झौतापछि: बैंक खाता खोल्ने पत्रअनुसार समितिले खाता खोलेपछि खाता विवरण राख्ने (किस्ता/भुक्तानी टिप्पणीमा आउँछ)."""
+    from accounts.permissions import user_perms
+
+    from .views import apply_bank, convert_english_to_nepali
+
+    project = _scoped_project(request, project_id)
+    if not (user_perms(request.user) & {"uc.agreement_print", "uc.valuation", "uc.committee"}):
+        return redirect("unauthorized")
+    committee = getattr(project, "user_committee", None)
+    if committee is None:
+        messages.error(request, "उपभोक्ता समिति गठन भएको छैन।")
+        return redirect("usercommittee_workflow")
+    approved = getattr(project, "uc_approval", None) is not None or project.document_prints.filter(
+        doc_type__in=[d for d, _l, _u in AGREEMENT_DOCS]).exists()
+    if not approved:
+        messages.error(request, "सम्झौता (रुजु / स्वीकृत) भएपछि मात्र बैंक खाता राख्न मिल्छ।")
+        return redirect("usercommittee_workflow")
+
+    if request.method == "POST":
+        apply_bank(committee, request.POST)
+        if committee.account_number and not committee.bank_name:
+            messages.error(request, "बैंकको नाम पनि लेख्नुहोस्।")
+            return render(request, "Admin/User/bank_account.html",
+                          {"project": project, "committee": committee, "form": request.POST})
+        committee.save(update_fields=["bank_name", "bank_branch", "account_number", "account_name",
+                                      "account_opened_date"])
+        messages.success(request, "बैंक खाता विवरण सुरक्षित भयो।" if committee.has_bank_account
+                         else "बैंक खाता विवरण हटाइयो।")
+        from django.utils.http import url_has_allowed_host_and_scheme
+        nxt = request.POST.get("next") or ""
+        if nxt and url_has_allowed_host_and_scheme(nxt, allowed_hosts={request.get_host()}):
+            return redirect(nxt)
+        return redirect("usercommittee_workflow")
+
+    return render(request, "Admin/User/bank_account.html", {
+        "project": project, "committee": committee, "uc": committee,
+        "bank_opened_bs": convert_english_to_nepali(committee.account_opened_date) if committee.account_opened_date else "",
+        "next": request.GET.get("next", ""),
+    })
