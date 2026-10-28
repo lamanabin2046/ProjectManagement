@@ -108,13 +108,14 @@
           <span class="sidebar-label flex-1 text-left">पालिका स्तरीय प्रतिवेदनहरू</span>
           <i data-lucide="chevron-right" class="menu-arrow"></i>
         </button>
-        <ul class="submenu-panel {% if current not in 'palika_engineer_project_list,palika_engineer_project_detail,palika_engineer_estimated_projects,palika_engineer_ward_comparison,palika_engineer_committee_list,palika_engineer_final_valuations,palika_engineer_committee_financial_report' %}hidden{% endif %} mt-1 ml-5 pl-3 border-l border-white/10 space-y-0.5">
+        <ul class="submenu-panel {% if current not in 'palika_engineer_project_list,palika_engineer_project_detail,palika_engineer_estimated_projects,palika_engineer_ward_comparison,palika_engineer_committee_list,palika_engineer_final_valuations,palika_engineer_committee_financial_report,outputs_report' %}hidden{% endif %} mt-1 ml-5 pl-3 border-l border-white/10 space-y-0.5">
           <li><a href="{% url 'palika_engineer_project_list' %}" class="submenu-link {% if current == 'palika_engineer_project_list' %}active{% endif %}"><i data-lucide="clipboard-list" class="sub-icon"></i><span>सबै योजनाहरू (सबै वडा)</span></a></li>
           <li><a href="{% url 'palika_engineer_estimated_projects' %}" class="submenu-link {% if current == 'palika_engineer_estimated_projects' %}active{% endif %}"><i data-lucide="receipt" class="sub-icon"></i><span>लागत अनुमान प्रतिवेदन</span></a></li>
           <li><a href="{% url 'palika_engineer_ward_comparison' %}" class="submenu-link {% if current == 'palika_engineer_ward_comparison' %}active{% endif %}"><i data-lucide="scale" class="sub-icon"></i><span>वडा अनुसार तुलना</span></a></li>
           <li><a href="{% url 'palika_engineer_committee_list' %}" class="submenu-link {% if current == 'palika_engineer_committee_list' %}active{% endif %}"><i data-lucide="users" class="sub-icon"></i><span>उपभोक्ता समिति सूची</span></a></li>
           <li><a href="{% url 'palika_engineer_final_valuations' %}" class="submenu-link {% if current == 'palika_engineer_final_valuations' %}active{% endif %}"><i data-lucide="banknote" class="sub-icon"></i><span>अन्तिम मूल्याङ्कन (सबै वडा)</span></a></li>
           <li><a href="{% url 'palika_engineer_committee_financial_report' %}" class="submenu-link {% if current == 'palika_engineer_committee_financial_report' %}active{% endif %}"><i data-lucide="chart-column" class="sub-icon"></i><span>समिति वित्तीय प्रतिवेदन</span></a></li>
+          {% if 'report.outputs' in me.perms %}<li><a href="{% url 'outputs_report' %}" class="submenu-link {% if current == 'outputs_report' %}active{% endif %}"><i data-lucide="ruler" class="sub-icon"></i><span>भौतिक उपलब्धि प्रतिवेदन</span></a></li>{% endif %}
         </ul>
       </li>
 
@@ -140,12 +141,13 @@
           <span class="sidebar-label flex-1 text-left">सेटिङ</span>
           <i data-lucide="chevron-right" class="menu-arrow"></i>
         </button>
-        <ul class="submenu-panel {% if current not in 'add_staff,manage_staff,roles_permissions,uc_approvers,office_settings,manage_wards,letter_templates,tax_heads,manage_fiscal_years,edit_fiscal_year,manage_budget_types,edit_budget_type,manage_procurement_types,edit_procurement_type' %}hidden{% endif %} mt-1 ml-5 pl-3 border-l border-white/10 space-y-0.5">
+        <ul class="submenu-panel {% if current not in 'add_staff,manage_staff,roles_permissions,uc_approvers,office_settings,manage_wards,output_settings,letter_templates,tax_heads,manage_fiscal_years,edit_fiscal_year,manage_budget_types,edit_budget_type,manage_procurement_types,edit_procurement_type' %}hidden{% endif %} mt-1 ml-5 pl-3 border-l border-white/10 space-y-0.5">
           <li><a href="{% url 'add_staff' %}" class="submenu-link {% if current == 'add_staff' %}active{% endif %}"><i data-lucide="user-plus" class="sub-icon"></i><span>कर्मचारी थप्नुहोस</span></a></li>
           <li><a href="{% url 'manage_staff' %}" class="submenu-link {% if current == 'manage_staff' %}active{% endif %}"><i data-lucide="key-round" class="sub-icon"></i><span>कर्मचारी व्यवस्थापन</span></a></li>
           {% if 'settings.office' in me.perms %}<li><a href="{% url 'office_settings' %}" class="submenu-link {% if current == 'office_settings' %}active{% endif %}"><i data-lucide="building-2" class="sub-icon"></i><span>कार्यालय सेटिङ</span></a></li>{% endif %}
           {% if 'settings.office' in me.perms %}<li><a href="{% url 'manage_wards' %}" class="submenu-link {% if current == 'manage_wards' %}active{% endif %}"><i data-lucide="map-pin" class="sub-icon"></i><span>वडाहरू</span></a></li>{% endif %}
           {% if 'settings.tax' in me.perms %}<li><a href="{% url 'tax_heads' %}" class="submenu-link {% if current == 'tax_heads' %}active{% endif %}"><i data-lucide="receipt" class="sub-icon"></i><span>कर शीर्षक</span></a></li>{% endif %}
+          {% if 'settings.outputs' in me.perms %}<li><a href="{% url 'output_settings' %}" class="submenu-link {% if current == 'output_settings' %}active{% endif %}"><i data-lucide="ruler" class="sub-icon"></i><span>उपलब्धि सूचक</span></a></li>{% endif %}
           {% if 'letters.templates' in me.perms %}<li><a href="{% url 'letter_templates' %}" class="submenu-link {% if current == 'letter_templates' %}active{% endif %}"><i data-lucide="file-pen-line" class="sub-icon"></i><span>पत्रका ढाँचा</span></a></li>{% endif %}
           {% if 'settings.roles' in me.perms %}<li><a href="{% url 'roles_permissions' %}" class="submenu-link {% if current == 'roles_permissions' %}active{% endif %}"><i data-lucide="shield-check" class="sub-icon"></i><span>भूमिका र अनुमति</span></a></li>{% endif %}
           {% if 'uc.delegate' in me.perms %}<li><a href="{% url 'uc_approvers' %}" class="submenu-link {% if current == 'uc_approvers' %}active{% endif %}"><i data-lucide="stamp" class="sub-icon"></i><span>स्वीकृत गर्ने अधिकारी</span></a></li>{% endif %}
@@ -352,6 +354,14 @@
           <span class="sidebar-label">समिति वित्तीय प्रतिवेदन</span>
         </a>
       </li>
+      {% if 'report.outputs' in me.perms %}
+      <li>
+        <a href="{% url 'outputs_report' %}" class="nav-link-item {% if current == 'outputs_report' %}active{% endif %}">
+          <i data-lucide="ruler" class="nav-icon"></i>
+          <span class="sidebar-label">भौतिक उपलब्धि प्रतिवेदन</span>
+        </a>
+      </li>
+      {% endif %}
     </ul>
 
     {% elif user.user_type == '2' or user.user_type == '5' or user.user_type == '9' %}
@@ -370,6 +380,14 @@
            class="nav-link-item {% if current == 'uc_approvers' %}active{% endif %}">
           <i data-lucide="shield-check" class="nav-icon"></i>
           <span class="sidebar-label">स्वीकृत गर्ने अधिकारी</span>
+        </a>
+      </li>
+      {% endif %}
+      {% if 'report.outputs' in me.perms %}
+      <li>
+        <a href="{% url 'outputs_report' %}" class="nav-link-item {% if current == 'outputs_report' %}active{% endif %}">
+          <i data-lucide="ruler" class="nav-icon"></i>
+          <span class="sidebar-label">भौतिक उपलब्धि प्रतिवेदन</span>
         </a>
       </li>
       {% endif %}

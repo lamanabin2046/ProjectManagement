@@ -52,6 +52,9 @@ class Project(models.Model):
     )
     execution_mode = models.CharField("कार्यान्वयन तह", max_length=20, choices=EXECUTION_MODES, blank=True, default="")
     status = models.IntegerField(default=0)
+    # कामको प्रकार (सडक, भवन …) — भौतिक उपलब्धि (ProjectOutput) भर्दा छानिन्छ
+    work_category = models.ForeignKey("WorkCategory", on_delete=models.SET_NULL, null=True, blank=True,
+                                      related_name="projects", verbose_name="कामको प्रकार")
 
 
     def __str__(self):
@@ -64,6 +67,52 @@ class Project(models.Model):
 from django.db import models
 from django.conf import settings
 from .models import Project
+
+# ================= भौतिक उपलब्धि (कति कि.मि. बाटो, कति भवन …) =================
+class WorkCategory(models.Model):
+    """कामको प्रकार: सडक/बाटो, भवन, खानेपानी … (पालिकाले थप्न/बदल्न मिल्ने)."""
+    name = models.CharField("कामको प्रकार", max_length=150)
+    sort = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField("सक्रिय", default=True)
+
+    class Meta:
+        ordering = ["sort", "id"]
+
+    def __str__(self):
+        return self.name
+
+
+class OutputIndicator(models.Model):
+    """उपलब्धि सूचक: जस्तै "नयाँ ट्रयाक (कच्ची बाटो)" — कि.मि.; "नयाँ भवन" — वटा."""
+    category = models.ForeignKey(WorkCategory, on_delete=models.CASCADE, related_name="indicators")
+    name = models.CharField("उपलब्धि", max_length=200)
+    unit = models.CharField("एकाइ", max_length=40)
+    sort = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField("सक्रिय", default=True)
+
+    class Meta:
+        ordering = ["category__sort", "category_id", "sort", "id"]
+
+    def __str__(self):
+        return f"{self.name} ({self.unit})"
+
+
+class ProjectOutput(models.Model):
+    """एउटा योजनाको एउटा सूचकको परिमाण — प्रतिवेदनमा जोडिन्छ।"""
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="outputs")
+    indicator = models.ForeignKey(OutputIndicator, on_delete=models.PROTECT, related_name="values")
+    quantity = models.DecimalField("परिमाण", max_digits=14, decimal_places=3)
+    updated_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+                                   related_name="+")
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ("project", "indicator")
+        ordering = ["indicator__category__sort", "indicator__sort", "indicator_id"]
+
+    def __str__(self):
+        return f"{self.project_id}: {self.indicator} = {self.quantity}"
+
 
 class ProjectTimeline(models.Model):
     # काम सुरु हुनु अघि / भइरहेको बेला / सम्पन्न भएपछि — the three checkpoints

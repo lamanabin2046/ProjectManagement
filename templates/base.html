@@ -388,11 +388,43 @@
         if (!$(this).find('tbody td[colspan]').length && !$.fn.DataTable.isDataTable(this)) { $(this).DataTable(); }
       });
 
-      var dateInputElement = document.getElementsByClassName('nepali-date');
-      if (dateInputElement.length) {
-        dateInputElement.nepaliDatePicker({ ndpYear: true, ndpMonth: true, readOnlyInput: true });
-      }
+      window.__initNepaliDates(document);
     });
+
+    // नेपाली मिति छान्ने (class="nepali-date") — पेज लोड र HTMX ले ल्याएका फारम (workflow panel, modal) दुवैमा
+    window.__initNepaliDates = function (root) {
+      if (!root || !root.querySelectorAll) return;
+      var list = root.querySelectorAll('input.nepali-date:not([data-ndp])');
+      Array.prototype.forEach.call(list, function (el) {
+        if (typeof el.nepaliDatePicker !== 'function') return;
+        el.setAttribute('data-ndp', '1');
+        el.nepaliDatePicker({ ndpYear: true, ndpMonth: true, readOnlyInput: true });
+      });
+    };
+    // पात्रो स्क्रिन बाहिर नजाओस् (workflow panel जस्ता तेर्सो scroll हुने ठाउँमा पनि)
+    if (!window.__ndpClampHook) {
+      window.__ndpClampHook = true;
+      var clampNdp = function (input) {
+        setTimeout(function () {
+          var box = document.getElementById('ndp-nepali-box');
+          if (!box || box.offsetParent === null) return;
+          var r = box.getBoundingClientRect(), ir = input.getBoundingClientRect(), vw = document.documentElement.clientWidth, vh = window.innerHeight;
+          var left = Math.min(Math.max(8, ir.left), vw - r.width - 8);
+          var top = ir.bottom + 4;
+          if (top + r.height > vh - 8 && ir.top - r.height - 4 > 8) { top = ir.top - r.height - 4; }
+          box.style.left = (left + window.scrollX) + 'px';
+          box.style.top = (top + window.scrollY) + 'px';
+        }, 20);
+      };
+      document.addEventListener('click', function (e) { var i = e.target.closest && e.target.closest('input.nepali-date'); if (i) clampNdp(i); }, true);
+      document.addEventListener('focusin', function (e) { if (e.target.matches && e.target.matches('input.nepali-date')) clampNdp(e.target); });
+    }
+    if (!window.__ndpSwapHook) {
+      window.__ndpSwapHook = true;
+      document.addEventListener('htmx:afterSwap', function (evt) {
+        window.__initNepaliDates(document);
+      });
+    }
 
     // ---- outline icons, breadcrumb and clock (run after every page change) ----
     if (window.lucide) { lucide.createIcons(); }

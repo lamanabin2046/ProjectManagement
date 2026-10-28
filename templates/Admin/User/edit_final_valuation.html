@@ -74,6 +74,8 @@
         </div>
         {% endif %}
         {% include 'Admin/User/_tax_rows.html' %}
+
+        {% include 'Admin/User/_outputs.html' %}
         {% include 'Admin/User/_final_check.html' with share=final_valuation.project.cost_estimate.office_contribution total=final_valuation.project.cost_estimate.total_cost %}
 
       </div>

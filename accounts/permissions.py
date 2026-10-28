@@ -50,9 +50,11 @@ PERMISSIONS = [
 
     ("letters.edit", "पत्र", "पत्र सम्पादन (एउटा पत्र मात्र)", "छाप्नुअघि त्यही योजनाको पत्रको पाठ बदल्ने"),
     ("letters.templates", "पत्र", "पत्रको ढाँचा (सबै योजनामा)", "पालिकाको ढाँचा — placeholder सहित, सबै पत्रमा लागू"),
+    ("report.outputs", "प्रतिवेदन", "भौतिक उपलब्धि प्रतिवेदन", "कति कि.मि. बाटो, कति भवन … (सबै वडा, आ.व. अनुसार)"),
     ("settings.staff", "सेटिङ", "कर्मचारी व्यवस्थापन", ""),
     ("settings.tax", "सेटिङ", "कर शीर्षक", "अन्तिम भुक्तानीमा कट्टी हुने करका शीर्षक थप्ने/बदल्ने"),
     ("settings.office", "सेटिङ", "कार्यालय सेटिङ र पत्र शीर्ष", "लोगो, नारा, वेबसाइट, इमेल र पत्र शीर्ष मिलाउने"),
+    ("settings.outputs", "सेटिङ", "कामको प्रकार र उपलब्धि सूचक", "सडक, भवन … र तिनका सूचक (कि.मि., वटा) थप्ने/बदल्ने"),
     ("settings.roles", "सेटिङ", "भूमिका र अनुमति मिलाउने", "Admin को यो अनुमति हटाउन मिल्दैन"),
 ]
 PERM_LABEL = {c: l for c, _g, l, _h in PERMISSIONS}
@@ -64,14 +66,15 @@ LOCKED = {("1", "settings.roles")}
 ALL = {c for c, *_ in PERMISSIONS}
 DEFAULT_ROLE_PERMS = {
     "1": ALL - {"uc.approve_ward"},
-    "2": {"uc.approve", "uc.delegate", "uc.member_docs", "uc.agreement_print", "uc.payment_print", "letters.edit"},
+    "2": {"uc.approve", "uc.delegate", "uc.member_docs", "uc.agreement_print", "uc.payment_print", "letters.edit",
+          "report.outputs"},
     "3": {"uc.public_audit", "project.manage", "uc.committee", "uc.member_docs", "uc.estimate", "uc.sifaris_upload",
-          "uc.agreement_print", "uc.valuation", "uc.payment_print", "letters.edit"},
+          "uc.agreement_print", "uc.valuation", "uc.payment_print", "letters.edit", "report.outputs", "settings.outputs"},
     "4": {"uc.estimate"},
     "5": {"uc.sifaris_upload"},
     "6": {"uc.public_audit", "uc.committee", "uc.member_docs", "uc.sifaris_portal", "letters.edit"},
     "7": {"uc.public_audit", "uc.estimate", "uc.progress_photo"},
-    "8": {"uc.public_audit", "uc.estimate", "uc.estimate_edit", "uc.inspection"},
+    "8": {"uc.public_audit", "uc.estimate", "uc.estimate_edit", "uc.inspection", "report.outputs"},
     "9": {"uc.approve_ward", "uc.member_docs"},
 }
 

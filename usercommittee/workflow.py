@@ -305,6 +305,10 @@ def project_workflow(project, user_type=None, user=None):
     actions = []
     if final and not final.tippani_printed and "uc.valuation" in P:
         actions.append(_link("मूल्याङ्कन सम्पादन", "edit_final_valuation", final.id))
+    if final and "uc.valuation" in P:
+        n_out = len(project.outputs.all())
+        actions.append(_link(("✓ " if n_out else "") + "भौतिक उपलब्धि", "project_outputs", project.id,
+                             primary=not n_out))
     elif not final and estimate and "uc.valuation" in P and (approval or printed):
         actions.append(_link("अन्तिम मूल्याङ्कन थप्नुहोस्", "add_final_valuation", primary=True, query=f"project={project.id}"))
     note = f"रु. {final.final_evaluation:,.0f}" if final else ""
@@ -437,7 +441,7 @@ def workflow_queryset():
         Project.objects.filter(procurement_type=1)
         .select_related("ward", "fiscalyear", "user_committee", "cost_estimate", "ward_recommendation",
                         "uc_approval", "final_payment", "completion_recommendation", "public_audit")
-        .prefetch_related("document_prints", "timelines", "inspection_notes", "installments",
+        .prefetch_related("document_prints", "timelines", "inspection_notes", "installments", "outputs",
                           "user_committee__member_links__person")
         .order_by("-id")
     )

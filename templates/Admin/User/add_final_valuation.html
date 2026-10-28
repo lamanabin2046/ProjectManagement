@@ -31,7 +31,7 @@
               <select class="form-select select2 w-full" name="project" id="id_project">
                 <option value="" {% if not request.GET.project %}selected{% endif %} disabled>योजना छान्नुहोस</option>
                 {% for i in cost_estimate %}
-                <option value="{{ i.id }}" data-budget="{{ i.project.budget }}" data-share="{{ i.office_contribution|stringformat:'s' }}" data-total="{{ i.total_cost|stringformat:'s' }}" {% if request.GET.project == i.project_id|stringformat:"s" %}selected{% endif %}>{{ i.project.name }}-{{ i.project.address }}</option>
+                <option value="{{ i.id }}" data-budget="{{ i.project.budget }}" data-share="{{ i.office_contribution|stringformat:'s' }}" data-total="{{ i.total_cost|stringformat:'s' }}" data-category="{{ i.project.work_category_id|default:'' }}" {% if request.GET.project == i.project_id|stringformat:"s" %}selected{% endif %}>{{ i.project.name }}-{{ i.project.address }}</option>
                 {% endfor %}
               </select>
             </div>
@@ -78,6 +78,8 @@
         </div>
         {% endif %}
         {% include 'Admin/User/_tax_rows.html' %}
+
+        {% include 'Admin/User/_outputs.html' %}
         {% include 'Admin/User/_final_check.html' %}
 
       </div>

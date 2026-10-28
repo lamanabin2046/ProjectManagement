@@ -10,6 +10,7 @@ from django.core.paginator import Paginator
 from nepali.date_converter import converter
 
 from projects.models import Project, ProjectTimeline
+from projects.outputs import catalog as outputs_catalog
 from .models import UserCommittee, CostEstimate, FinalPayment, WardRecommendation, ProjectCompletionRecommendation, SiteInspectionNote, ActivityLog
 from accounts.models import WardSachib, WardEngineer, PalikaEngineer, CustomUser
 from .roster import POSTS, DOC_KINDS, GENDERS, default_rows, parse_roster, apply_roster, roster_rows, sync_members, with_slots
@@ -1593,6 +1594,12 @@ def add_final_valuation(request):
             if paid_before > office_contribution:
                 messages.error(request, f"यस अघि किस्तामा रु. {paid_before:,.2f} दिइसकिएको छ, जुन कार्यालयले बेहोर्ने रकमभन्दा बढी हो।")
                 return redirect(f"{request.path}?project={project.id}")
+            from projects.outputs import parse_outputs, save_outputs
+            out_cat, out_values, out_errors = parse_outputs(request.POST)
+            if out_errors:
+                for e in out_errors:
+                    messages.error(request, e)
+                return redirect(f"{request.path}?project={project.id}")
             from .amounts import check_final
             tax_total = sum((Decimal(str(v)) for v in tax_deduction.values()), Decimal("0"))
             amount_errors, amount_warnings = check_final(project, final_valuation, office_contribution,
@@ -1612,6 +1619,8 @@ def add_final_valuation(request):
                 status=1,  # Approved
             )
             log_activity(request, "create", new_final_payment, "अन्तिम भुक्तानी/मूल्याङ्कन")
+            if "work_category" in request.POST:
+                save_outputs(project, out_cat, out_values, request.user)
             for w in amount_warnings:
                 messages.warning(request, w)
 
@@ -1626,11 +1635,14 @@ def add_final_valuation(request):
             messages.error(request, f"Invalid numeric value: {e}")
             return redirect("add_final_valuation")
 
-    cost_estimate = CostEstimate.objects.filter(status=0)
+    cost_estimate = CostEstimate.objects.filter(status=0).select_related("project")
+    pre = request.GET.get("project")
+    pre_project = Project.objects.filter(id=pre).first() if str(pre or "").isdigit() else None
     return render(
         request,
         "Admin/User/add_final_valuation.html",
         {"cost_estimate": cost_estimate, "tax_heads": active_heads(),
+         "out_groups": outputs_catalog(pre_project), "out_category_id": getattr(pre_project, "work_category_id", None),
          **_installment_ctx(request.GET.get("project")),
          # सेटिङमा भएका सबै सक्रिय कर शीर्षक सुरुमै देखिन्छन्; रकम मात्र भर्ने
          "tax_rows": [(h.code, "") for h in active_heads()] or [("", "")],
@@ -1668,6 +1680,12 @@ def edit_final_valuation(request, id):
             if final_valuation.installments_paid > final_valuation.office_contribution:
                 messages.error(request, "यस अघि दिइएका किस्ता कार्यालयले बेहोर्ने रकमभन्दा बढी छन्।")
                 return redirect("edit_final_valuation", id=id)
+            from projects.outputs import parse_outputs, save_outputs
+            out_cat, out_values, out_errors = parse_outputs(request.POST)
+            if out_errors:
+                for e in out_errors:
+                    messages.error(request, e)
+                return redirect("edit_final_valuation", id=id)
             from .amounts import check_final
             amount_errors, amount_warnings = check_final(
                 final_valuation.project, final_valuation.final_evaluation, final_valuation.office_contribution,
@@ -1680,6 +1698,8 @@ def edit_final_valuation(request, id):
                 messages.warning(request, w)
 
             final_valuation.save()
+            if "work_category" in request.POST:
+                save_outputs(final_valuation.project, out_cat, out_values, request.user)
             log_activity(request, "update", final_valuation, "अन्तिम भुक्तानी/मूल्याङ्कन")
 
             messages.success(request, "अन्तिम मूल्याङ्कन सच्याइयो ✅")
@@ -1698,6 +1718,8 @@ def edit_final_valuation(request, id):
             "final_valuation": final_valuation,
             "application_date_nepali": application_date_nepali,
             "tax_heads": _heads_with_used(final_valuation.tax_deduction),
+            "out_groups": outputs_catalog(final_valuation.project),
+            "out_category_id": final_valuation.project.work_category_id,
             **_installment_ctx(final_valuation.project_id),
             "tax_rows": tax_rows(final_valuation.tax_deduction) or [("", "")],
             "can_add_tax_head": has_perm(request.user, "uc.valuation") or has_perm(request.user, "settings.tax"),
@@ -1826,7 +1848,7 @@ def PRINT_FINAL_TIPPANI(request,id):
         "recommendation_date_nepali":recommendation_date_nepali,
         "tax_labels": TAX_LABELS,
         "installments": list(project.installments.all()),
-
+        "outputs": list(project.outputs.select_related("indicator")),
     }
 
     return render(request,"Admin/User/print_final_tippani.html",context)

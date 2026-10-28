@@ -3,6 +3,7 @@
 {% load letters %}
 {% load nepali_date %}
 {% load nepali_filters %}
+{% load outputs %}
 <html lang="ne">
 <head>
   <meta charset="UTF-8" />
@@ -269,6 +270,12 @@
         </table>
       </div>
     </div>
+
+    {% if outputs %}
+    <p style="margin:10px 0 4px"><b>भौतिक उपलब्धि:</b>
+      {% for o in outputs %}{{ o.indicator.name }} {{ o.quantity|qty|to_nepali_number }} {{ o.indicator.unit }}{% if not forloop.last %}, {% endif %}{% endfor %} ।
+    </p>
+    {% endif %}
 
     <p>
       संलग्न कागजात बमोजिम उक्त उ. स. को प्रस्तुत विल भर्पाईमा
