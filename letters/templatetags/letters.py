@@ -1,7 +1,7 @@
 """{% editable_letter "uc.bank_letter" "बैंक पत्र" %} …मूल पाठ… {% endeditable_letter %}
 
 देखाउने क्रम: १) यो पत्रको सम्पादित पाठ  २) पालिकाको ढाँचा (placeholder भरेर)  ३) मूल पाठ।
-सम्पादन अनुमति भएकालाई पेजमा "छाप्नुहोस् / सम्पादन" toolbar र editor पनि आउँछ (छापिँदैन)।
+सम्पादन अनुमति भएकालाई पेजमा "प्रिन्ट गर्नुहोस् / सम्पादन" toolbar र editor पनि आउँछ (छापिँदैन)।
 """
 import json
 
@@ -79,7 +79,7 @@ class EditableLetterNode(template.Node):
             payload = json.dumps(data, ensure_ascii=False).replace("</", "<\\/")
             out += f'<script type="application/json" class="letter-data">{payload}</script>'
 
-        # toolbar (छाप्नुहोस् / फिर्ता / सम्पादन) + editor: एक पेजमा एक पटक मात्र
+        # toolbar (प्रिन्ट गर्नुहोस् / फिर्ता / सम्पादन) + editor: एक पेजमा एक पटक मात्र
         if not context.render_context.get("letters_toolbar"):
             context.render_context["letters_toolbar"] = True
             out = render_to_string("letters/_toolbar.html", {

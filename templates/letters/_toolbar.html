@@ -1,5 +1,5 @@
 {% load static %}
-{% comment %}पत्र पेजको toolbar (छाप्नुहोस्, फिर्ता, सम्पादन) र editor. छापिँदैन। letters templatetag ले एक पटक राख्छ।{% endcomment %}
+{% comment %}पत्र पेजको toolbar (प्रिन्ट गर्नुहोस्, फिर्ता, सम्पादन) र editor. छापिँदैन। letters templatetag ले एक पटक राख्छ।{% endcomment %}
 <style>
   .lt-bar { position: fixed; top: 12px; right: 12px; z-index: 9000; display: flex; gap: 8px; font-family: 'Noto Sans Devanagari', 'Inter', system-ui, sans-serif; }
   .lt-btn { display: inline-flex; align-items: center; gap: 6px; border: 1px solid #cbd5e1; background: #fff; color: #1e293b; border-radius: 10px;
@@ -55,7 +55,7 @@
 <div class="lt-bar" id="ltBar">
   <button type="button" class="lt-btn" onclick="history.length > 1 ? history.back() : (location.href='/')">← फिर्ता</button>
   {% if can_edit %}<button type="button" class="lt-btn" id="ltEditBtn">✎ सम्पादन</button>{% endif %}
-  <button type="button" class="lt-btn primary" id="ltPrintBtn">🖨 छाप्नुहोस्</button>
+  <button type="button" class="lt-btn primary" id="ltPrintBtn">🖨 प्रिन्ट गर्नुहोस्</button>
 </div>
 
 {% if can_edit %}

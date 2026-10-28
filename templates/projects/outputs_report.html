@@ -10,7 +10,7 @@
   </div>
   <div class="flex gap-2">
     <a href="?{{ qs }}{% if qs %}&{% endif %}export=xlsx" class="btn-secondary" hx-boost="false"><i class="fas fa-file-excel text-emerald-600"></i> Excel</a>
-    <button type="button" onclick="window.print()" class="btn-secondary"><i class="fas fa-print"></i> छाप्नुहोस्</button>
+    <button type="button" onclick="window.print()" class="btn-secondary"><i class="fas fa-print"></i> प्रिन्ट गर्नुहोस्</button>
     {% if 'settings.outputs' in me.perms %}<a href="{% url 'output_settings' %}" class="btn-secondary"><i class="fas fa-gear"></i> सूचक</a>{% endif %}
   </div>
 </div>
