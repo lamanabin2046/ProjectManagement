@@ -2,6 +2,7 @@ from django.urls import path
 from .import views
 from . import views_roles
 from . import views_office
+from . import views_wards
 
 urlpatterns = [
     path('login/', views.login_view, name='login'),
@@ -12,6 +13,7 @@ urlpatterns = [
     path('Admin/ManageStaff/', views.manage_staff, name='manage_staff'),
     path('Admin/Roles/', views_roles.roles_permissions, name='roles_permissions'),
     path('Admin/Office/', views_office.office_settings, name='office_settings'),
+    path('Admin/Wards/', views_wards.manage_wards, name='manage_wards'),
     path('Admin/ResetPassword/<int:user_id>/', views.reset_staff_password, name='reset_staff_password'),
     path('Engineer/Home/', views.engineer_home, name='engineer_home'),
     path('Engineer/Home/', views.engineer_home, name='engineer_home'),

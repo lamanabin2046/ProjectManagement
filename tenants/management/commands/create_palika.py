@@ -43,6 +43,8 @@ class Command(BaseCommand):
             number_of_wards=o["wards"],
         )
         self.stdout.write(self.style.SUCCESS(f"\n{palika.full_name} is ready."))
-        self.stdout.write(f"  Site:     http://{palika.primary_domain}:8000/")
+        site = (f"https://{palika.primary_domain}/" if not settings.DEBUG
+                else f"http://{palika.primary_domain}:8000/")
+        self.stdout.write(f"  Site:     {site}")
         self.stdout.write(f"  Login:    {o['admin_mobile']}")
         self.stdout.write(f"  Password: {password}")

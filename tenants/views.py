@@ -58,11 +58,16 @@ def palika_stats(palika):
     from accounts.models import CustomUser
     from projects.models import Project
 
+    from accounts.models import Ward
+    from accounts.wards import sorted_wards
+
     try:
         with schema_context(palika.schema_name):
-            return {"projects": Project.objects.count(), "users": CustomUser.objects.count()}
+            wards = [w.name for w in sorted_wards()]
+            return {"projects": Project.objects.count(), "users": CustomUser.objects.count(),
+                    "wards": len(wards), "ward_names": wards}
     except Exception:
-        return {"projects": "-", "users": "-"}
+        return {"projects": "-", "users": "-", "wards": "-", "ward_names": []}
 
 
 @saas_staff_required
@@ -184,4 +189,25 @@ def domain_delete(request, pk, domain_id):
     else:
         d.delete()
         messages.success(request, "डोमेन हटाइयो।")
+    return redirect("saas_palika_detail", pk=pk)
+
+
+@saas_staff_required
+@require_POST
+def palika_wards(request, pk):
+    """SaaS Manager बाट पालिकाको कुल वडा संख्या मिलाउने (नभएका वडा थपिन्छन्, भएका छोइँदैनन्)."""
+    from accounts.wards import MAX_WARDS, ensure_wards, np_num, ward_int
+
+    palika = get_object_or_404(palikas(), pk=pk)
+    n = ward_int(request.POST.get("total"))
+    if n is None or not 1 <= n <= MAX_WARDS:
+        messages.error(request, f"वडा संख्या १ देखि {np_num(MAX_WARDS)} सम्म हुनुपर्छ।")
+    else:
+        with schema_context(palika.schema_name):
+            created = ensure_wards(n)
+        if created:
+            messages.success(request, f"{palika.full_name}: {np_num(len(created))} वटा वडा थपियो "
+                                      f"({', '.join(w.name for w in created)})।")
+        else:
+            messages.info(request, f"{palika.full_name} मा वडा १–{np_num(n)} पहिले नै छन्।")
     return redirect("saas_palika_detail", pk=pk)

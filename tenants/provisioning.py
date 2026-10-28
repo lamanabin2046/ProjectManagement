@@ -57,7 +57,7 @@ def provision_palika(palika, *, admin_mobile, admin_name="Admin", admin_password
 
     Returns the admin password (generated if not given) so it can be shown once.
     """
-    from accounts.models import Admin, CustomUser, Ward
+    from accounts.models import Admin, CustomUser
     from projects.models import Budget_Type, FiscalYear, Procurement_Type, Project_Type
 
     password = admin_password or secrets.token_urlsafe(8)
@@ -71,9 +71,8 @@ def provision_palika(palika, *, admin_mobile, admin_name="Admin", admin_password
             Project_Type.objects.get_or_create(type=n)
         FiscalYear.objects.get_or_create(name=current_fiscal_year())
 
-        existing = Ward.objects.count()
-        for i in range(existing + 1, (number_of_wards or 0) + 1):
-            Ward.objects.create(name=str(i).translate(NEPALI_DIGITS))
+        from accounts.wards import ensure_wards
+        ensure_wards(number_of_wards or 0)
 
         user = CustomUser.objects.filter(mobile=admin_mobile).first()
         if user is None:

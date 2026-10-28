@@ -140,10 +140,11 @@
           <span class="sidebar-label flex-1 text-left">सेटिङ</span>
           <i data-lucide="chevron-right" class="menu-arrow"></i>
         </button>
-        <ul class="submenu-panel {% if current not in 'add_staff,manage_staff,roles_permissions,uc_approvers,office_settings,letter_templates,tax_heads,manage_fiscal_years,edit_fiscal_year,manage_budget_types,edit_budget_type,manage_procurement_types,edit_procurement_type' %}hidden{% endif %} mt-1 ml-5 pl-3 border-l border-white/10 space-y-0.5">
+        <ul class="submenu-panel {% if current not in 'add_staff,manage_staff,roles_permissions,uc_approvers,office_settings,manage_wards,letter_templates,tax_heads,manage_fiscal_years,edit_fiscal_year,manage_budget_types,edit_budget_type,manage_procurement_types,edit_procurement_type' %}hidden{% endif %} mt-1 ml-5 pl-3 border-l border-white/10 space-y-0.5">
           <li><a href="{% url 'add_staff' %}" class="submenu-link {% if current == 'add_staff' %}active{% endif %}"><i data-lucide="user-plus" class="sub-icon"></i><span>कर्मचारी थप्नुहोस</span></a></li>
           <li><a href="{% url 'manage_staff' %}" class="submenu-link {% if current == 'manage_staff' %}active{% endif %}"><i data-lucide="key-round" class="sub-icon"></i><span>कर्मचारी व्यवस्थापन</span></a></li>
           {% if 'settings.office' in me.perms %}<li><a href="{% url 'office_settings' %}" class="submenu-link {% if current == 'office_settings' %}active{% endif %}"><i data-lucide="building-2" class="sub-icon"></i><span>कार्यालय सेटिङ</span></a></li>{% endif %}
+          {% if 'settings.office' in me.perms %}<li><a href="{% url 'manage_wards' %}" class="submenu-link {% if current == 'manage_wards' %}active{% endif %}"><i data-lucide="map-pin" class="sub-icon"></i><span>वडाहरू</span></a></li>{% endif %}
           {% if 'settings.tax' in me.perms %}<li><a href="{% url 'tax_heads' %}" class="submenu-link {% if current == 'tax_heads' %}active{% endif %}"><i data-lucide="receipt" class="sub-icon"></i><span>कर शीर्षक</span></a></li>{% endif %}
           {% if 'letters.templates' in me.perms %}<li><a href="{% url 'letter_templates' %}" class="submenu-link {% if current == 'letter_templates' %}active{% endif %}"><i data-lucide="file-pen-line" class="sub-icon"></i><span>पत्रका ढाँचा</span></a></li>{% endif %}
           {% if 'settings.roles' in me.perms %}<li><a href="{% url 'roles_permissions' %}" class="submenu-link {% if current == 'roles_permissions' %}active{% endif %}"><i data-lucide="shield-check" class="sub-icon"></i><span>भूमिका र अनुमति</span></a></li>{% endif %}
