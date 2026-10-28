@@ -45,26 +45,8 @@
         </a>
       </li>
 
+      {% include 'includes/_bid_menu.html' %}
       {% include 'includes/_reports_menu.html' %}
-
-      {% comment %} बोलपत्र ठेक्का व्यवस्थापन {% endcomment %}
-      <li class="sidebar-group">
-        <button type="button" onclick="toggleSubmenu(this)"
-                class="nav-link-item w-full">
-          <i data-lucide="file-text" class="nav-icon"></i>
-          <span class="sidebar-label flex-1 text-left">बोलपत्र ठेक्का व्यवस्थापन</span>
-          <i data-lucide="chevron-right" class="menu-arrow"></i>
-        </button>
-        <ul class="submenu-panel {% if current not in 'add_bid_detail,view_bid_detail,view_approved_projects,view_agreement_projects,add_advance_payment,add_running_evaluation,add_final_payment' %}hidden{% endif %} mt-1 ml-5 pl-3 border-l border-white/10 space-y-0.5">
-          <li><a href="{% url 'add_bid_detail' %}" class="submenu-link {% if current == 'add_bid_detail' %}active{% endif %}"><i data-lucide="plus" class="sub-icon"></i><span>ठेक्काको विवरण प्रवेष्ठी</span></a></li>
-          <li><a href="{% url 'view_bid_detail' %}" class="submenu-link {% if current == 'view_bid_detail' %}active{% endif %}"><i data-lucide="eye" class="sub-icon"></i><span>आसय र PG माग</span></a></li>
-          <li><a href="{% url 'view_approved_projects' %}" class="submenu-link {% if current == 'view_approved_projects' %}active{% endif %}"><i data-lucide="circle-check" class="sub-icon"></i><span>स्वीकृती बोलपत्र विवरण</span></a></li>
-          <li><a href="{% url 'view_agreement_projects' %}" class="submenu-link {% if current == 'view_agreement_projects' %}active{% endif %}"><i data-lucide="handshake" class="sub-icon"></i><span>सम्झौता र कार्यदेश</span></a></li>
-          <li><a href="{% url 'add_advance_payment' %}" class="submenu-link {% if current == 'add_advance_payment' %}active{% endif %}"><i data-lucide="wallet" class="sub-icon"></i><span>अग्रिम पेश्की भुक्तानी</span></a></li>
-          <li><a href="{% url 'add_running_evaluation' %}" class="submenu-link {% if current == 'add_running_evaluation' %}active{% endif %}"><i data-lucide="wallet" class="sub-icon"></i><span>रनिङ विल भुक्तानी</span></a></li>
-          <li><a href="{% url 'add_final_payment' %}" class="submenu-link {% if current == 'add_final_payment' %}active{% endif %}"><i data-lucide="wallet" class="sub-icon"></i><span>अन्तिम भुक्तानी</span></a></li>
-        </ul>
-      </li>
 
       {% comment %} दरभाउपत्र खरिद व्यवस्थापन {% endcomment %}
       <li class="sidebar-group">
@@ -86,22 +68,6 @@
 
 
 
-      {% comment %} बोलपत्र सम्बन्धी प्रतिबेदनहरु {% endcomment %}
-      <li class="sidebar-group">
-        <button type="button" onclick="toggleSubmenu(this)"
-                class="nav-link-item w-full">
-          <i data-lucide="chart-line" class="nav-icon"></i>
-          <span class="sidebar-label flex-1 text-left">बोलपत्र सम्बन्धी प्रतिबेदनहरु</span>
-          <i data-lucide="chevron-right" class="menu-arrow"></i>
-        </button>
-        <ul class="submenu-panel {% if current not in 'view_advance_payment,view_running_evaluations,view_final_payment' %}hidden{% endif %} mt-1 ml-5 pl-3 border-l border-white/10 space-y-0.5">
-          <li><a href="{% url 'view_advance_payment' %}" class="submenu-link {% if current == 'view_advance_payment' %}active{% endif %}"><i data-lucide="list" class="sub-icon"></i><span>अग्रिम पेश्की भुक्तानी विवरण</span></a></li>
-          <li><a href="{% url 'view_running_evaluations' %}" class="submenu-link {% if current == 'view_running_evaluations' %}active{% endif %}"><i data-lucide="list" class="sub-icon"></i><span>रनिङ विल भुक्तानी विवरण</span></a></li>
-          <li><a href="{% url 'view_final_payment' %}" class="submenu-link {% if current == 'view_final_payment' %}active{% endif %}"><i data-lucide="list" class="sub-icon"></i><span>अन्तिम विल भुक्तानी विवरण</span></a></li>
-        </ul>
-      </li>
-
-
       {% comment %} पालिका स्तरीय प्रतिवेदनहरू (सबै वडा) {% endcomment %}
       <li class="sidebar-group">
         <button type="button" onclick="toggleSubmenu(this)"
@@ -117,20 +83,6 @@
           <li><a href="{% url 'palika_engineer_committee_list' %}" class="submenu-link {% if current == 'palika_engineer_committee_list' %}active{% endif %}"><i data-lucide="users" class="sub-icon"></i><span>उपभोक्ता समिति सूची</span></a></li>
           <li><a href="{% url 'palika_engineer_final_valuations' %}" class="submenu-link {% if current == 'palika_engineer_final_valuations' %}active{% endif %}"><i data-lucide="banknote" class="sub-icon"></i><span>अन्तिम मूल्याङ्कन (सबै वडा)</span></a></li>
           <li><a href="{% url 'palika_engineer_committee_financial_report' %}" class="submenu-link {% if current == 'palika_engineer_committee_financial_report' %}active{% endif %}"><i data-lucide="chart-column" class="sub-icon"></i><span>समिति वित्तीय प्रतिवेदन</span></a></li>
-        </ul>
-      </li>
-
-            {% comment %} बैंक ग्यारेन्टी व्यवस्थापन {% endcomment %}
-      <li class="sidebar-group">
-        <button type="button" onclick="toggleSubmenu(this)"
-                class="nav-link-item w-full">
-          <i data-lucide="landmark" class="nav-icon"></i>
-          <span class="sidebar-label flex-1 text-left">बैंक ग्यारेन्टी व्यवस्थापन</span>
-          <i data-lucide="chevron-right" class="menu-arrow"></i>
-        </button>
-        <ul class="submenu-panel {% if current not in 'view_performance_bank_guarantees,view_advance_bank_guarantees' %}hidden{% endif %} mt-1 ml-5 pl-3 border-l border-white/10 space-y-0.5">
-          <li><a href="{% url 'view_performance_bank_guarantees' %}" class="submenu-link {% if current == 'view_performance_bank_guarantees' %}active{% endif %}"><i data-lucide="banknote" class="sub-icon"></i><span>Performance Bond</span></a></li>
-          <li><a href="{% url 'view_advance_bank_guarantees' %}" class="submenu-link {% if current == 'view_advance_bank_guarantees' %}active{% endif %}"><i data-lucide="search" class="sub-icon"></i><span>Advance Payment Guarantee</span></a></li>
         </ul>
       </li>
 
@@ -185,6 +137,7 @@
           <span class="sidebar-label">उपभोक्ता समिति</span>
         </a>
       </li>
+      {% include 'includes/_bid_menu.html' %}
 
       <li class="sidebar-group">
         <button type="button" onclick="toggleSubmenu(this)"
@@ -263,6 +216,8 @@
           <span class="sidebar-label">उपभोक्ता समिति</span>
         </a>
       </li>
+      {% include 'includes/_bid_menu.html' %}
+      {% include 'includes/_reports_menu.html' %}
     </ul>
 
     {% elif user.user_type == '7' %}
@@ -355,6 +310,7 @@
           <span class="sidebar-label">समिति वित्तीय प्रतिवेदन</span>
         </a>
       </li>
+      {% include 'includes/_bid_menu.html' %}
       {% include 'includes/_reports_menu.html' %}
     </ul>
 
@@ -377,6 +333,7 @@
         </a>
       </li>
       {% endif %}
+      {% include 'includes/_bid_menu.html' %}
       {% include 'includes/_reports_menu.html' %}
     </ul>
     {% endif %}

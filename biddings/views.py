@@ -1270,6 +1270,12 @@ def print_final_tippani(request, id):
 
         "today_nepali": convert_english_to_nepali(datetime.date.today()),
         "payment_date_nepali": convert_english_to_nepali(final_payment.payment_date),
+        # रनिङ बिलमा कट्टी भइसकेको बाहेक बाँकी अग्रिम
+        "advance_left": max(
+            (final_payment.total_advance_payment or Decimal("0"))
+            - (contract.running_evaluations.aggregate(t=Sum("advance_adjusted"))["t"] or Decimal("0")),
+            Decimal("0"),
+        ),
     }
 
     return render(request, "Admin/Bidding/print_final_tippani.html", context)

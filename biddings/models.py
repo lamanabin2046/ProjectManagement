@@ -385,3 +385,49 @@ class RunningEvaluation(models.Model):
             f"Running Evaluation – {self.contract.sealed_bid.project.name} "
             f"({self.evaluation_date})"
         )
+
+# ================= कार्यप्रवाह (workflow) =================
+from django.conf import settings as _settings
+
+
+class BidApproval(models.Model):
+    """बोलपत्र मूल्याङ्कनपछि रुजु / स्वीकृत (प्रमुख प्रशासकीय अधिकृत वा अनुमति पाएका)."""
+    sealed_bid = models.OneToOneField(SealedBid, on_delete=models.CASCADE, related_name="approval")
+    approved_by = models.ForeignKey(_settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+                                    related_name="+")
+    approver_name = models.CharField(max_length=200, blank=True)
+    approver_post = models.CharField(max_length=200, blank=True)
+    remarks = models.TextField(blank=True)
+    approved_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"स्वीकृत – {self.sealed_bid}"
+
+
+class BidPrint(models.Model):
+    """ठेक्काको कागजात छापिएको अभिलेख — कार्यप्रवाहमा चरण पूरा देखाउन."""
+    ASAY = "asay"
+    TIPPANI = "tippani"
+    INVITE = "invite"
+    CONTRACT = "contract"
+    WORK_ORDER = "work_order"
+    FINAL_TIPPANI = "final_tippani"
+    DOC_CHOICES = (
+        (ASAY, "आशयको सूचना"),
+        (TIPPANI, "स्वीकृति टिप्पणी"),
+        (INVITE, "सम्झौता गर्न आउने सूचना"),
+        (CONTRACT, "सम्झौता पत्र"),
+        (WORK_ORDER, "कार्यादेश"),
+        (FINAL_TIPPANI, "अन्तिम भुक्तानी टिप्पणी"),
+    )
+    sealed_bid = models.ForeignKey(SealedBid, on_delete=models.CASCADE, related_name="prints")
+    doc_type = models.CharField(max_length=30, choices=DOC_CHOICES)
+    printed_by = models.ForeignKey(_settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+                                   related_name="+")
+    printed_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["printed_at"]
+
+    def __str__(self):
+        return f"{self.sealed_bid} – {self.get_doc_type_display()}"

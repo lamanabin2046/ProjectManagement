@@ -24,7 +24,7 @@ def _user_wards(user):
 @login_required
 def project_outputs(request, project_id):
     """एउटा योजनाको भौतिक उपलब्धि (अन्तिम टिप्पणी छापिएर मूल्याङ्कन लक भए पनि यहाँबाट सच्याउन मिल्छ)."""
-    if not has_perm(request.user, "uc.valuation"):
+    if not (has_perm(request.user, "uc.valuation") or has_perm(request.user, "bid.manage")):
         return redirect("unauthorized")
     project = get_object_or_404(Project.objects.select_related("ward", "fiscalyear", "work_category"), id=project_id)
     wards = _user_wards(request.user)

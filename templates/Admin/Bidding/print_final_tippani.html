@@ -267,29 +267,25 @@
       बराबरको कार्य सम्पन्न भएको देखिन्छ।
     </p>
 
-    {% if final_payment.total_running_bill_amount > 0 %}
     <p>
-      उक्त कुल मूल्यांकन रकम मध्ये यसअघि रनिङ बिलमार्फत भुक्तानी भइसकेको रु.
-      <strong>{{ final_payment.total_running_bill_amount|floatformat:2|to_nepali_number }}/-</strong>
-      घटाई बाँकी रहेको रकममा अग्रिम कर, मूल्य अभिबृद्धि कर, धरौटी तथा बहाल कर
+      {% if final_payment.total_running_bill_amount > 0 or advance_left > 0 %}
+      उक्त कुल मूल्यांकन रकम मध्ये
+      {% if final_payment.total_running_bill_amount > 0 %}यसअघि रनिङ बिलमार्फत भुक्तानी भइसकेको रु.
+      <strong>{{ final_payment.total_running_bill_amount|floatformat:2|to_nepali_number }}/-</strong>{% endif %}
+      {% if final_payment.total_running_bill_amount > 0 and advance_left > 0 %} तथा {% endif %}
+      {% if advance_left > 0 %}कट्टी हुन बाँकी अग्रिम भुक्तानी रु.
+      <strong>{{ advance_left|floatformat:2|to_nepali_number }}/-</strong>{% endif %}
+      घटाई बाँकी रहेको रकममा
+      {% else %}
+      उक्त कुल मूल्यांकन रकममा
+      {% endif %}
+      अग्रिम कर, मूल्य अभिबृद्धि कर, धरौटी तथा बहाल कर
       समेत जम्मा रु.
       <strong>{{ final_payment.agrim_tax|add:final_payment.vat_deduction|add:final_payment.dharauti_deduction|add:final_payment.bahal_tax|floatformat:2|to_nepali_number }}/-</strong>
       कट्टी गरी खुद रु.
       <strong>{{ final_payment.final_amount|floatformat:2|to_nepali_number }}/-</strong>
       अन्तिम भुक्तानी दिन उपयुक्त देखिन्छ।
     </p>
-    {% else %}
-    <p>
-      उक्त कुल मूल्यांकन रकम मध्ये यसअघि अग्रिम भुक्तानी स्वरूप उपलब्ध गराइएको रु.
-      <strong>{{ final_payment.total_advance_payment|floatformat:2|to_nepali_number }}/-</strong>
-      घटाई बाँकी रहेको रकममा अग्रिम कर, मूल्य अभिबृद्धि कर, धरौटी तथा बहाल कर
-      समेत जम्मा रु.
-      <strong>{{ final_payment.agrim_tax|add:final_payment.vat_deduction|add:final_payment.dharauti_deduction|add:final_payment.bahal_tax|floatformat:2|to_nepali_number }}/-</strong>
-      कट्टी गरी खुद रु.
-      <strong>{{ final_payment.final_amount|floatformat:2|to_nepali_number }}/-</strong>
-      अन्तिम भुक्तानी दिन उपयुक्त देखिन्छ।
-    </p>
-    {% endif %}
 
     <p>
       पेश भएको कार्य सम्पन्न प्रतिवेदन तथा अन्तिम मूल्यांकन विवरण जाँचबुझ गर्दा
@@ -388,7 +384,7 @@
   window.__letterPrint = function () {
     window.print();
     setTimeout(function () {
-      window.location.href = "/Bidding/final-payments/";
+      window.location.href = "__BID_RETURN__";
     }, 3000);
   };
 </script>

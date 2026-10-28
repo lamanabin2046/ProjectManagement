@@ -48,6 +48,11 @@ PERMISSIONS = [
     ("uc.progress_photo", "काम प्रगति", "प्रगति फोटो अपलोड", ""),
     ("uc.inspection", "काम प्रगति", "निरीक्षण टिप्पणी", ""),
 
+    ("bid.view", "बोलपत्र ठेक्का", "ठेक्का कार्यप्रवाह हेर्ने", "बोलपत्र, सम्झौता, जमानत र भुक्तानीको स्थिति"),
+    ("bid.manage", "बोलपत्र ठेक्का", "ठेक्का विवरण भर्ने", "आह्वान, मूल्याङ्कन, PG माग, सम्झौता, पेश्की, रनिङ र अन्तिम बिल"),
+    ("bid.approve", "बोलपत्र ठेक्का", "बोलपत्र रुजु / स्वीकृत गर्ने", "मूल्याङ्कन र आशयको सूचनापछि"),
+    ("bid.print", "बोलपत्र ठेक्का", "ठेक्काका कागजात छाप्ने", "आशयको सूचना, टिप्पणी, सम्झौता, कार्यादेश, भुक्तानी टिप्पणी"),
+
     ("letters.edit", "पत्र", "पत्र सम्पादन (एउटा पत्र मात्र)", "छाप्नुअघि त्यही योजनाको पत्रको पाठ बदल्ने"),
     ("letters.templates", "पत्र", "पत्रको ढाँचा (सबै योजनामा)", "पालिकाको ढाँचा — placeholder सहित, सबै पत्रमा लागू"),
     ("report.uc", "प्रतिवेदन", "उपभोक्ता समिति प्रतिवेदन", "विनियोजित, भुक्तानी, कर कट्टी — एकीकृत, योजनागत र कर प्रतिवेदन"),
@@ -68,14 +73,16 @@ ALL = {c for c, *_ in PERMISSIONS}
 DEFAULT_ROLE_PERMS = {
     "1": ALL - {"uc.approve_ward"},
     "2": {"uc.approve", "uc.delegate", "uc.member_docs", "uc.agreement_print", "uc.payment_print", "letters.edit",
-          "report.outputs", "report.uc"},
+          "report.outputs", "report.uc", "bid.view", "bid.approve", "bid.print"},
     "3": {"uc.public_audit", "project.manage", "uc.committee", "uc.member_docs", "uc.estimate", "uc.sifaris_upload",
-          "uc.agreement_print", "uc.valuation", "uc.payment_print", "letters.edit", "report.outputs", "report.uc", "settings.outputs"},
-    "4": {"uc.estimate"},
+          "uc.agreement_print", "uc.valuation", "uc.payment_print", "letters.edit", "report.outputs", "report.uc", "settings.outputs",
+          "bid.view", "bid.manage", "bid.print"},
+    "4": {"uc.estimate", "bid.view"},
     "5": {"uc.sifaris_upload"},
     "6": {"uc.public_audit", "uc.committee", "uc.member_docs", "uc.sifaris_portal", "letters.edit"},
     "7": {"uc.public_audit", "uc.estimate", "uc.progress_photo"},
-    "8": {"uc.public_audit", "uc.estimate", "uc.estimate_edit", "uc.inspection", "report.outputs", "report.uc"},
+    "8": {"uc.public_audit", "uc.estimate", "uc.estimate_edit", "uc.inspection", "report.outputs", "report.uc",
+          "bid.view"},
     "9": {"uc.approve_ward", "uc.member_docs"},
 }
 
