@@ -1,4 +1,7 @@
-"""उपभोक्ता समिति प्रतिवेदन — योजनाअनुसार रकम (विनियोजित, लागत अनुमान, भुक्तानी, कर) र एकीकृत सारांश.
+"""खरिद तथा भुक्तानी प्रतिवेदन — उपभोक्ता समिति, बोलपत्र ठेक्का र दरभाउपत्र खरिद, सबै एउटै ढाँचामा
+(विनियोजित, लागत अनुमान, सम्झौता, भुक्तानी, कर कट्टी) र एकीकृत सारांश.
+
+उपभोक्ता समिति:
 
 भुक्तानी (कुल):  अन्तिम मूल्याङ्कन भए FinalPayment.office_contribution (किस्ता समेत),
                  नभए दिइसकेका किस्ताको जम्मा।
@@ -12,10 +15,14 @@ from decimal import Decimal
 ZERO = Decimal("0")
 STATUS = OrderedDict([
     ("completed", "सम्पन्न"),
-    ("paid", "भुक्तानी भएको (हस्तान्तरण बाँकी)"),
+    ("paid", "अन्तिम बिल भएको"),
     ("running", "चालु"),
-    ("not_started", "समिति गठन बाँकी"),
+    ("not_started", "प्रक्रिया सुरु नभएको"),
 ])
+KINDS = OrderedDict([("uc", "उपभोक्ता समिति"), ("bid", "बोलपत्र ठेक्का"), ("quot", "दरभाउपत्र खरिद")])
+KIND_PTYPE = {"uc": 1, "bid": 2, "quot": 3}       # Project.procurement_type_id
+# बोलपत्र / दरभाउपत्रका निश्चित कट्टी → कर शीर्षक code (उपभोक्ता समितिका शीर्षकसँगै जोडिन्छ)
+EXTRA_LABELS = {"vat": "मूल्य अभिवृद्धि कर (भ्याट) कट्टी", "dharauti": "धरौटी / रिटेन्सन कट्टी"}
 
 
 def D(v):
@@ -69,7 +76,9 @@ def project_rows(qs, status=""):
         tax = sum(taxes.values(), ZERO)
         allocated = D(p.budget)
         rows.append({
-            "p": p, "uc": uc, "status": st, "status_label": STATUS[st],
+            "p": p, "uc": uc, "kind": "uc", "kind_label": KINDS["uc"], "party": uc.name if uc else "",
+            "contract": D(est.total_cost) if est else None,
+            "status": st, "status_label": STATUS[st],
             "allocated": allocated,
             "estimate": D(est.total_cost) if est else None,
             "office_share": (D(est.budget) - D(est.contingency_amount)) if est else None,
@@ -87,6 +96,7 @@ def project_rows(qs, status=""):
 def totals(rows):
     keys = ("allocated", "contingency", "user_share", "installments", "gross", "tax", "net", "remaining")
     t = {k: sum((r[k] for r in rows), ZERO) for k in keys}
+    t["contract"] = sum((r["contract"] for r in rows if r.get("contract") is not None), ZERO)
     t["estimate"] = sum((r["estimate"] for r in rows if r["estimate"] is not None), ZERO)
     t["office_share"] = sum((r["office_share"] for r in rows if r["office_share"] is not None), ZERO)
     t["valuation"] = sum((r["valuation"] for r in rows if r["valuation"] is not None), ZERO)
@@ -112,7 +122,7 @@ def by_tax_head(rows, wards):
     """[{"code", "name", "total", "count", "ward_values": [...], "projects": [(row, amount)]}] — शीर्षकअनुसार।"""
     from .tax import tax_labels
 
-    labels = tax_labels()
+    labels = {**EXTRA_LABELS, **tax_labels()}
     order = {}
     try:
         from .models import TaxHead
@@ -132,3 +142,130 @@ def by_tax_head(rows, wards):
         h["count"] = len(h["projects"])
         h["ward_values"] = [h["by_ward"].get(w.id) for w in wards]
     return out
+
+
+# ---------------------------------------------------------------- बोलपत्र ठेक्का
+def _gen_status(summary, has_final, started):
+    if summary["completed"]:
+        return "completed"
+    if has_final:
+        return "paid"
+    return "running" if started else "not_started"
+
+
+BID_TAX = (("agrim_tax", "agrim_tax"), ("vat_deduction", "vat"), ("dharauti_deduction", "dharauti"), ("bahal_tax", "bahal_tax"))
+
+
+def bid_rows(qs, status=""):
+    """बोलपत्र: कुल भुक्तानी = दिइसकेको नगद (अग्रिम + रनिङ खुद + अन्तिम खुद) + कट्टी (कर, धरौटी)।
+    अन्तिम बिल भएपछि यो कुल मूल्याङ्कन रकम बराबर हुन्छ।"""
+    from biddings.workflow import bid_workflow, contract_parts, current_bid
+
+    rows = []
+    for p in qs:
+        _steps, summary = bid_workflow(p)
+        bid = current_bid(p)
+        _c, _bond, _req, fin, advances, runs = contract_parts(bid)
+        st = _gen_status(summary, fin is not None, bid is not None)
+        if status and st != status:
+            continue
+        taxes = {}
+        for src in runs + ([fin] if fin else []):
+            for field, code in BID_TAX:
+                v = D(getattr(src, field, 0))
+                if v:
+                    taxes[code] = taxes.get(code, ZERO) + v
+        adv = sum((D(a.approved_amount) for a in advances), ZERO)
+        cash = adv + sum((D(r.net_payable) for r in runs), ZERO) + (D(fin.final_amount) if fin else ZERO)
+        tax = sum(taxes.values(), ZERO)
+        gross = cash + tax
+        allocated = D(p.budget)
+        rows.append({
+            "p": p, "uc": None, "kind": "bid", "kind_label": KINDS["bid"],
+            "party": (bid.bidder_name_nepali or "") if bid else "",
+            "status": st, "status_label": STATUS[st], "allocated": allocated,
+            "estimate": D(bid.total_cost_estimate) if bid and bid.total_cost_estimate else None,
+            "contract": D(bid.bidding_amount) if bid and bid.bidding_amount else None,
+            "office_share": None, "contingency": D(bid.contingency_amount) if bid else ZERO, "user_share": ZERO,
+            "valuation": D(fin.total_evaluation_amount) if fin else None,
+            "installments": adv + sum((D(r.payable_amount) - D(r.advance_adjusted) for r in runs), ZERO),
+            "inst_count": len(advances) + len(runs),
+            "gross": gross, "tax": tax, "taxes": taxes, "net": cash, "remaining": allocated - gross,
+            "work_category": p.work_category.name if p.work_category_id else "",
+        })
+    return rows
+
+
+# ---------------------------------------------------------------- दरभाउपत्र खरिद
+def quot_rows(qs, status=""):
+    """दरभाउपत्र: कुल भुक्तानी = अग्रिम + अन्तिम खुद + कट्टी (आयकर, धरौटी)।"""
+    from quatation.workflow import current_quation, final_of, lowest, quot_workflow
+
+    rows = []
+    for p in qs:
+        _steps, summary = quot_workflow(p)
+        q = current_quation(p)
+        fin = final_of(q)
+        st = _gen_status(summary, fin is not None, q is not None)
+        if status and st != status:
+            continue
+        advances = list(q.advances.all()) if q else []
+        taxes = {}
+        if fin:
+            for code, v in (("agrim_tax", fin.taxdeduction), ("dharauti", fin.retension)):
+                if v:
+                    taxes[code] = taxes.get(code, ZERO) + D(v)
+        adv = sum((D(a.approved_amount) for a in advances), ZERO)
+        cash = adv + (D(fin.finalpayment) if fin else ZERO)
+        tax = sum(taxes.values(), ZERO)
+        gross = cash + tax
+        allocated = D(p.budget)
+        appr = getattr(q, "approval", None) if q else None
+        firm, price = lowest(q) if q else (None, None)
+        rows.append({
+            "p": p, "uc": None, "kind": "quot", "kind_label": KINDS["quot"],
+            "party": (appr.firm_name if appr and appr.firm_name else firm) or "",
+            "status": st, "status_label": STATUS[st], "allocated": allocated,
+            "estimate": D(q.cost_estimate) if q else None,
+            "contract": D(appr.amount) if appr and appr.amount else (D(price) if price else None),
+            "office_share": None, "contingency": D(q.contingency) if q and q.contingency else ZERO, "user_share": ZERO,
+            "valuation": D(fin.totalValuation) if fin and fin.totalValuation is not None else None,
+            "installments": adv, "inst_count": len(advances),
+            "gross": gross, "tax": tax, "taxes": taxes, "net": cash, "remaining": allocated - gross,
+            "work_category": p.work_category.name if p.work_category_id else "",
+        })
+    return rows
+
+
+def all_rows(project_ids, kind="", status=""):
+    """सबै विधिका पङ्क्ति (क्रम: वडा, नाम). kind: '' | uc | bid | quot."""
+    from biddings.workflow import workflow_queryset as bid_qs
+    from quatation.workflow import workflow_queryset as quot_qs
+
+    from .workflow import workflow_queryset as uc_qs
+
+    rows = []
+    if kind in ("", "uc"):
+        rows += project_rows(uc_qs().filter(id__in=project_ids).select_related("work_category"), status)
+    if kind in ("", "bid"):
+        rows += bid_rows(bid_qs().filter(id__in=project_ids).select_related("work_category"), status)
+    if kind in ("", "quot"):
+        rows += quot_rows(quot_qs().filter(id__in=project_ids).select_related("work_category"), status)
+    rows.sort(key=lambda r: (r["p"].ward_id or 0, r["kind"], r["p"].name))
+    return rows
+
+
+def by_sector(rows):
+    """क्षेत्रअनुसार (क्षेत्र नराखिएका अन्त्यमा)."""
+    groups = {}
+    for r in rows:
+        s = r["p"].sector
+        groups.setdefault(s.id if s else None, (s, []))[1].append(r)
+    out = [{"sector": s, "name": s.name if s else "क्षेत्र नराखिएको", **totals(rs)}
+           for _k, (s, rs) in sorted(groups.items(), key=lambda kv: (kv[1][0] is None, kv[1][0].sort if kv[1][0] else 0, kv[0] or 0))]
+    return out
+
+
+def by_kind(rows):
+    return [{"kind": k, "label": lbl, **totals([r for r in rows if r["kind"] == k])}
+            for k, lbl in KINDS.items() if any(r["kind"] == k for r in rows)]

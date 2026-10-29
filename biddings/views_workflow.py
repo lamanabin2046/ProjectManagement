@@ -18,6 +18,8 @@ from django.urls import reverse
 
 from accounts.models import Ward
 from accounts.permissions import has_perm, user_perms
+from projects.budget import check_payment, over_budget_warning
+from projects.budget import spent as budget_spent
 from projects.models import FiscalYear
 from usercommittee.workflow import approver_identity, bs_date
 
@@ -166,6 +168,9 @@ def _render_form(request, project, ctx):
         "project": project, "bid": bid, "next": request.POST.get("next") or request.GET.get("next", ""),
         "back": _next(request, project), "below": pct_below(bid.total_cost_estimate, bid.bidding_amount) if bid else None,
     }
+    if ctx.get("script") in ("running", "final") or ctx.get("icon") == "wallet":   # भुक्तानी फारम
+        from projects.budget import budget_note
+        ctx["note"] = (ctx.get("note", "") + " · " if ctx.get("note") else "") + budget_note(project)
     return render(request, "biddings/wf_form.html", base | ctx)
 
 
@@ -415,8 +420,8 @@ def _approve_ctx(project, bid):
             warnings.append(f"आशयको सूचनाको {np(INTENT_DAYS)} दिने उजुरी अवधि सकिन {np(left)} दिन बाँकी छ।")
         if bid.total_cost_estimate and bid.bidding_amount and bid.bidding_amount > bid.total_cost_estimate:
             warnings.append("कबोल रकम लागत अनुमानभन्दा बढी छ।")
-        if bid.budget and bid.bidding_amount and bid.bidding_amount > bid.budget:
-            warnings.append("कबोल रकम विनियोजित रकमभन्दा बढी छ।")
+        if bid.bidding_amount and (w := over_budget_warning(project, bid.bidding_amount, "कबोल रकम")):
+            warnings.append(w)
     return {"project": project, "bid": bid, "problems": problems, "warnings": warnings,
             "approval": getattr(bid, "approval", None) if bid else None,
             "below": pct_below(bid.total_cost_estimate, bid.bidding_amount) if bid else None,
@@ -610,6 +615,8 @@ def advance(request, project_id):
         errors = f.errors
         if amount is not None and paid + amount > contract_amount:
             errors.append("कुल अग्रिम भुक्तानी ठेक्का रकमभन्दा बढी हुन सक्दैन।")
+        if amount is not None and (e := check_payment(project, budget_spent(project) + amount, "यो अग्रिम")):
+            errors.append(e)
         if amount is not None and g_amount is not None and g_amount < amount:
             errors.append("अग्रिम भुक्तानी जमानत रकम अग्रिम रकमभन्दा कम हुन सक्दैन।")
         if issue and expiry and expiry <= issue:
@@ -693,6 +700,8 @@ def running(request, project_id):
         net = (payable or ZERO) - (adj or ZERO) - sum((t or ZERO for t in taxes.values()), ZERO)
         if not errors and net <= 0:
             errors.append("खुद भुक्तानी रकम ० भन्दा बढी हुनुपर्छ।")
+        if not errors and (e := check_payment(project, budget_spent(project) + payable - (adj or ZERO), "यो रनिङ बिल")):
+            errors.append(e)
         if day_ and runs and day_ < runs[-1].evaluation_date:
             errors.append("मूल्याङ्कन मिति अघिल्लो रनिङ बिलभन्दा अघि हुन सक्दैन।")
         if not errors:
@@ -770,6 +779,8 @@ def final(request, project_id):
         final_amount = posted_final if posted_final else computed
         if not errors and final_amount <= 0:
             errors.append("खुद भुक्तानी रकम ० भन्दा बढी हुनुपर्छ।")
+        if not errors and (e := check_payment(project, total_eval, "अन्तिम बिल")):
+            errors.append(e)
         if not errors:
             obj = fp or FinalPayment(contract=contract)
             obj.bidding_amount = contract_amount

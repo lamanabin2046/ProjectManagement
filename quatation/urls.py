@@ -3,6 +3,7 @@ from functools import wraps
 from django.contrib import messages
 from django.shortcuts import redirect
 from django.urls import path
+from django.views.generic import RedirectView
 
 from . import views, views_workflow as wf
 from .workflow import quot_print
@@ -35,7 +36,7 @@ urlpatterns = [
     path('Workflow/<int:project_id>/agreement/', wf.agreement, name='quot_wf_agreement'),
     path('Workflow/<int:project_id>/final/', wf.final, name='quot_wf_final'),
     path('Workflow/<int:project_id>/advance/', wf.advance, name='quot_wf_advance'),
-    path('Advance/Guarantees/', wf.advance_guarantees, name='quot_advance_guarantees'),
+    path('Advance/Guarantees/', RedirectView.as_view(url='/Projects/Guarantees/Advance/?kind=quot'), name='quot_advance_guarantees'),
 
     # ================= छाप्ने (अनुमति + क्रम जाँच, छापिएको अभिलेख, कार्यप्रवाहमा फर्कने) =================
     path('Print/Quatation/<str:id>', quot_print(views.PRINT_QUATATION_TIPPANI, "invite_tippani", "q"), name='print_quatation_tippani'),

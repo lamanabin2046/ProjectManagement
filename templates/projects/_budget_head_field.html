@@ -1,0 +1,33 @@
+{% comment %}बजेट शीर्षक — छानिएको आ.व.का मात्र देखिन्छन्; बाँकी रकम सँगै. चाहिने: budget_heads, (ऐच्छिक) project{% endcomment %}
+{% load outputs %}
+<div>
+  <label class="form-label">बजेट शीर्षक / उपशीर्षक</label>
+  <select name="budget_head" id="f-budget-head" class="form-select w-full" data-current="{{ project.budget_head_id|default:'' }}">
+    <option value="">— शीर्षक नतोकिएको —</option>
+    {% for h in budget_heads %}
+    <option value="{{ h.id }}" data-fy="{{ h.fiscalyear_id }}" data-room="{{ h.room }}" {% if project.budget_head_id == h.id %}selected{% endif %}>
+      {% if h.code %}{{ h.code }} — {% endif %}{{ h.name }} (बाँकी रु. {{ h.room|money }})</option>
+    {% endfor %}
+  </select>
+  <p class="text-[11px] text-slate-500 mt-1" id="f-budget-head-hint">विनियोजित रकम शीर्षकमा बाँकी रकमभित्र हुनुपर्छ।
+    {% if 'budget.manage' in me.perms %}<a href="{% url 'budget_heads' %}" class="text-brand-600 underline" target="_blank">शीर्षक थप्नुहोस्</a>{% endif %}</p>
+</div>
+<script>
+(function () {
+  var sel = document.getElementById('f-budget-head');
+  var fy = document.querySelector('select[name="fiscal"]');
+  if (!sel || !fy) return;
+  var all = Array.prototype.slice.call(sel.options, 1);
+  function fill() {
+    var cur = sel.value;
+    all.forEach(function (o) {
+      var ok = !fy.value || o.dataset.fy === fy.value;
+      o.hidden = !ok; o.disabled = !ok;
+      if (!ok && o.value === cur) sel.value = '';
+    });
+  }
+  fy.addEventListener('change', fill);
+  if (window.jQuery) window.jQuery(fy).on('change', fill);
+  fill();
+})();
+</script>

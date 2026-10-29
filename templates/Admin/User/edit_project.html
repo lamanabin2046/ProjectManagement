@@ -73,6 +73,8 @@
                 {% endfor %}
               </select>
             </div>
+            {% include 'projects/_sector_fields.html' %}
+            {% include 'projects/_budget_head_field.html' %}
             <div>
               <label class="form-label">विनियोजित बजेट रकमः</label>
               <input type="text" class="form-input" name="budget" value="{{ project.budget }}">

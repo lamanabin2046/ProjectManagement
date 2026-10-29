@@ -20,6 +20,63 @@ def devanagari_to_english_number(dev_num_str):
 
 
 
+def _sector_pair(post):
+    """फारमबाट (क्षेत्र, उपक्षेत्र) — उपक्षेत्र छानिएको क्षेत्रकै हुनुपर्छ।"""
+    from .models import Sector, SubSector
+
+    sector = Sector.objects.filter(id=post.get("sector") or 0).first() if str(post.get("sector", "")).isdigit() else None
+    sub = SubSector.objects.filter(id=post.get("subsector") or 0).first() if str(post.get("subsector", "")).isdigit() else None
+    if sub is not None and sector is None:
+        sector = sub.sector
+    if sub is not None and sub.sector_id != sector.id:
+        sub = None
+    return sector, sub
+
+
+def _sector_ctx(project=None):
+    from .models import Sector
+
+    sectors = list(Sector.objects.filter(is_active=True).prefetch_related("subsectors"))
+    # सम्पादनमा: निष्क्रिय भए पनि हालको क्षेत्र/उपक्षेत्र देखिनुपर्छ
+    if project is not None and project.sector_id and all(x.id != project.sector_id for x in sectors):
+        sectors.append(project.sector)
+    return {"sectors": sectors}
+
+
+def _budget_ctx(project=None):
+    """बजेट शीर्षक ड्रपडाउन — बाँकी रकम (सम्पादनमा यसै योजनाको रकम बाँकीमा जोडेर)."""
+    from .budget import D, head_room
+    from .models import BudgetHead
+
+    heads = list(BudgetHead.objects.filter(is_active=True).select_related("fiscalyear"))
+    if project is not None and project.budget_head_id and all(h.id != project.budget_head_id for h in heads):
+        heads.append(project.budget_head)
+    for h in heads:
+        h.room = head_room(h, [getattr(project, "pk", None)])
+    return {"budget_heads": heads}
+
+
+def _budget_head(post):
+    from .models import BudgetHead
+
+    v = str(post.get("budget_head", "") or "")
+    return BudgetHead.objects.filter(id=v).first() if v.isdigit() else None
+
+
+def _budget_errors(request, project, budget, head, fiscalyear_id):
+    from .budget import check_project_budget
+
+    try:
+        amount = Decimal(str(budget or "0").replace(",", "").strip() or "0")
+    except Exception:
+        messages.error(request, "विनियोजित बजेट रकम अङ्कमा लेख्नुहोस्।")
+        return True
+    errors = check_project_budget(project, amount, head, fiscalyear_id)
+    for e in errors:
+        messages.error(request, e)
+    return bool(errors)
+
+
 def add_project(request):
 
     
@@ -41,7 +98,14 @@ def add_project(request):
         if budget:
             budget = devanagari_to_english_number(budget)
        
+        sector, subsector = _sector_pair(request.POST)
+        head = _budget_head(request.POST)
+        if _budget_errors(request, None, budget, head, fiscal_id):
+            return redirect('add_project')
         project = Project (
+            budget_head = head,
+            sector = sector,
+            subsector = subsector,
             fiscalyear = fiscalYear,
             name = name,
             ward = ward,
@@ -68,9 +132,9 @@ def add_project(request):
         "ward":ward,
         "procurement_type":procurement_type,
         "budget_type":budget_type,
-        "project_type":project_type
-        
-        
+        "project_type":project_type,
+        **_sector_ctx(),
+        **_budget_ctx(),
     }
     
     return render(request,"Admin/User/add_projects.html",context)
@@ -89,6 +153,56 @@ IMPORT_REQUIRED_COLUMNS = [
     "ward_id",
     "project_type_id",
 ]
+
+
+# ऐच्छिक: क्षेत्र / उपक्षेत्र नामबाट (सेटिङ → क्षेत्र / उपक्षेत्रमा भएको नाम जस्ताको तस्तै)
+IMPORT_OPTIONAL_COLUMNS = ["sector", "subsector", "budget_head"]
+
+
+def _import_sector(row):
+    """(Sector, SubSector) Excel पङ्क्तिबाट; नाम नमिले ValueError."""
+    import pandas as pd
+
+    from .models import Sector, SubSector
+
+    def val(key):
+        v = row.get(key) if hasattr(row, "get") else None
+        return "" if v is None or (not isinstance(v, str) and pd.isna(v)) else str(v).strip()
+
+    sec_name, sub_name = val("sector"), val("subsector")
+    sector = sub = None
+    if sec_name:
+        sector = Sector.objects.filter(name=sec_name).first()
+        if sector is None:
+            raise ValueError(f"क्षेत्र “{sec_name}” भेटिएन")
+    if sub_name:
+        qs = SubSector.objects.filter(name=sub_name)
+        if sector is not None:
+            qs = qs.filter(sector=sector)
+        sub = qs.first()
+        if sub is None:
+            raise ValueError(f"उपक्षेत्र “{sub_name}” भेटिएन" + (f" (“{sector.name}” भित्र)" if sector else ""))
+        sector = sector or sub.sector
+    return sector, sub
+
+
+def _import_head(row, fiscalyear):
+    """बजेट शीर्षक — उपशीर्षक नं. वा नाम (त्यही आ.व.को); नमिले ValueError."""
+    import pandas as pd
+
+    from .models import BudgetHead
+
+    v = row.get("budget_head") if hasattr(row, "get") else None
+    text = "" if v is None or (not isinstance(v, str) and pd.isna(v)) else str(v).strip()
+    if text.endswith(".0") and text[:-2].isdigit():
+        text = text[:-2]
+    if not text:
+        return None
+    qs = BudgetHead.objects.filter(fiscalyear=fiscalyear)
+    head = qs.filter(code=text).first() or qs.filter(name=text).first()
+    if head is None:
+        raise ValueError(f"बजेट शीर्षक “{text}” {fiscalyear.name} मा भेटिएन")
+    return head
 
 
 def _normalize_header(value):
@@ -176,8 +290,18 @@ def import_excel(request):
                     raise ValueError("name is empty")
                 if pd.isna(address) or not str(address).strip():
                     raise ValueError("address is empty")
+                sector, subsector = _import_sector(row)
+                fy = FiscalYear.objects.get(id=int(_to_number(row["fiscalyear_id"])))
+                head = _import_head(row, fy)
+                amount = _to_number(row["budget"])
+                if head is not None:
+                    from .budget import check_project_budget
+                    errs = check_project_budget(None, amount, head, fy.id)
+                    if errs:
+                        raise ValueError(errs[0])
 
                 Project.objects.create(
+                    budget_head=head,
                     name=str(name).strip(),
                     address=str(address).strip(),
                     budget=_to_number(row["budget"]),
@@ -187,6 +311,8 @@ def import_excel(request):
                     procurement_type=Procurement_Type.objects.get(id=int(_to_number(row["procurement_type_id"]))),
                     ward=Ward.objects.get(id=int(_to_number(row["ward_id"]))),
                     project_type=Project_Type.objects.get(id=int(_to_number(row["project_type_id"]))),
+                    sector=sector,
+                    subsector=subsector,
                 )
                 success += 1
 
@@ -225,7 +351,7 @@ def view_projects(request):
     filters_applied = bool(q or ward_id or fiscalyear_id or procurement_type_id or budget_type_id)
 
     projects = Project.objects.select_related(
-        "ward", "fiscalyear", "project_type", "procurement_type", "budget_type", "user_committee"
+        "ward", "sector", "subsector", "fiscalyear", "project_type", "procurement_type", "budget_type", "user_committee"
     )
 
     if fiscalyear_id:
@@ -293,9 +419,9 @@ def edit_project(request, id):
         "wards":wards,
         "procurement_type":procurement_type,
         "budget_type":budget_type,
-        "project_type":project_type
-        
-        
+        "project_type":project_type,
+        **_sector_ctx(project),
+        **_budget_ctx(project),
     }
     return render(request,"Admin/User/edit_project.html",context)
 
@@ -322,6 +448,10 @@ def update_project(request):
         ward_id = request.POST.get("ward_id")
         ward = Ward.objects.get(id=ward_id)
         project = Project.objects.get(id=project_id)
+        head = _budget_head(request.POST)
+        if _budget_errors(request, project, budget, head, fiscal_year_id):
+            return redirect('edit_project', id=project.id)
+        project.budget_head = head
         project.procurement_type = procurement_type
         project.name = project_name
         project.address = address
@@ -330,6 +460,7 @@ def update_project(request):
         project.fiscalyear = fiscalyear
         project.project_type = project_type
         project.ward = ward
+        project.sector, project.subsector = _sector_pair(request.POST)
         mode = request.POST.get("execution_mode", project.execution_mode)
         if mode in ("", "municipal", "ward"):
             project.execution_mode = mode

@@ -35,9 +35,10 @@
         <i class="fas fa-file-lines"></i> सूची / रिपोर्ट <i class="fas fa-chevron-down text-[10px]"></i>
       </button>
       <div id="bid-reports" data-dropdown-panel class="hidden absolute right-0 mt-2 w-72 card p-1.5 z-30">
+        {% if 'report.uc' in me.perms %}<a href="{% url 'uc_report_summary' %}?kind=quot" class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-slate-50 border-b mb-1 pb-2"><i class="fas fa-chart-column text-brand-600 w-4"></i> वित्तीय प्रतिवेदन (प्रिन्ट / Excel)</a>{% endif %}
         <a href="{% url 'view_suchikrit_list' %}" class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-slate-50"><i class="fas fa-building text-brand-500 w-4"></i> सूचीकृत फर्म ({{ firm_count|to_nepali_number }})</a>
         {% if 'quot.manage' in me.perms %}<a href="{% url 'add_suchikrit_list' %}?next={{ return_to|urlencode }}" class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-slate-50"><i class="fas fa-plus text-emerald-600 w-4"></i> नयाँ फर्म सूचीकृत गर्नुहोस्</a>{% endif %}
-        <a href="{% url 'quot_advance_guarantees' %}" class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-slate-50 border-t mt-1 pt-2"><i class="fas fa-shield-halved text-violet-500 w-4"></i> अग्रिम भुक्तानी जमानत</a>
+        <a href="{% url 'advance_guarantees' %}?kind=quot" class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-slate-50 border-t mt-1 pt-2"><i class="fas fa-shield-halved text-violet-500 w-4"></i> अग्रिम भुक्तानी जमानत</a>
         <a href="{% url 'view_quatation_all_projects' %}" class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-slate-50 border-t mt-1 pt-2"><i class="fas fa-list text-amber-500 w-4"></i> सबै दरभाउपत्र विवरण</a>
         <a href="{% url 'view_quatation_final_payment_sidebar' %}" class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-slate-50"><i class="fas fa-file-invoice-dollar text-rose-500 w-4"></i> अन्तिम भुक्तानी विवरण</a>
       </div>

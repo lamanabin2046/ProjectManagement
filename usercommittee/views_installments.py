@@ -105,6 +105,10 @@ def installments(request, project_id, inst_id=None):
         others = paid - (editing.amount if editing else 0)
         if amount and share and others + amount > share:
             errors.append(f"जम्मा किस्ता रु. {others + amount:,.2f} कार्यालयले बेहोर्ने रकम रु. {share:,.2f} भन्दा बढी भयो।")
+        if amount:
+            from projects.budget import check_payment
+            if (e := check_payment(project, others + amount, "यो किस्ता")):
+                errors.append(e)
         if amount and sum(Decimal(str(v)) for v in taxes.values()) > amount:
             errors.append("कर कट्टी भुक्तानी रकमभन्दा बढी भयो।")
         date_ad = None

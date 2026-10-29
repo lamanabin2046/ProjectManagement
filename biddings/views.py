@@ -581,10 +581,9 @@ def get_sealed_bid_contract_info(request, sealed_bid_id):
     Return contract info for a Contract Signed SealedBid
     """
 
-    bid = get_object_or_404(
-        SealedBid,
-   
-    )
+    bid = get_object_or_404(SealedBid, id=sealed_bid_id)
+    if not hasattr(bid, "contract"):
+        return JsonResponse({"error": "सम्झौता भएको छैन"}, status=404)
 
     return JsonResponse({
         "bidding_number": bid.bidding_number,

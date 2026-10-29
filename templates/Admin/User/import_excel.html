@@ -24,6 +24,13 @@
         <input type="file" name="excel_file" accept=".xlsx" required class="hidden">
       </label>
 
+      <div class="text-left text-xs text-slate-500 bg-slate-50 rounded-xl p-3 mb-4 leading-relaxed">
+        <p class="font-semibold text-slate-600 mb-1">स्तम्भ (column) हरू</p>
+        <p>अनिवार्य: <code>name, address, budget, status, budget_type_id, fiscalyear_id, procurement_type_id, ward_id, project_type_id</code></p>
+        <p class="mt-1">ऐच्छिक: <code>sector</code>, <code>subsector</code> — क्षेत्र / उपक्षेत्रको नाम, सेटिङ → क्षेत्र / उपक्षेत्रमा भए जस्तै।</p>
+        <p class="mt-1">ऐच्छिक: <code>budget_head</code> — बजेट उपशीर्षक नं. वा शीर्षकको नाम (त्यही आ.व.को)। शीर्षकमा बाँकी रकमभन्दा बढी भए त्यो पङ्क्ति छुट्छ।</p>
+      </div>
+
       <button type="submit" class="btn-primary w-full">
         <i class="fas fa-upload"></i> Upload Excel
       </button>

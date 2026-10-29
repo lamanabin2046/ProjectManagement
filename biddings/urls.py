@@ -3,6 +3,7 @@ from functools import wraps
 from django.contrib import messages
 from django.shortcuts import redirect
 from django.urls import path
+from django.views.generic import RedirectView
 
 from . import views, views_workflow as wf
 from .workflow import bid_print
@@ -66,8 +67,11 @@ urlpatterns = [
    path('View/Bid/Detail', view(views.VIEW_BID_DETAIL), name='view_bid_detail'),
    path('view_approved_projects', view(views.view_approved_projects), name='view_approved_projects'),
    path('Project/View/Agreement/Projects', view(views.view_agreement_projects), name='view_agreement_projects'),
-   path('view_performance_bank_guarantees', view(views.view_performance_bank_guarantees), name='view_performance_bank_guarantees'),
-   path('view_advance_bank_guarantees', view(views.view_advance_bank_guarantees), name='view_advance_bank_guarantees'),
+   # पुराना जमानत सूची → बैंक ग्यारेन्टी मेनु
+   path('view_performance_bank_guarantees', RedirectView.as_view(pattern_name='performance_guarantees', query_string=True),
+        name='view_performance_bank_guarantees'),
+   path('view_advance_bank_guarantees', RedirectView.as_view(url='/Projects/Guarantees/Advance/?kind=bid'),
+        name='view_advance_bank_guarantees'),
    path('view_advance_payment', view(views.view_advance_payment), name='view_advance_payment'),
    path('view_running_evaluations', view(views.view_running_evaluations), name='view_running_evaluations'),
    path("final-payments/", view(views.view_final_payment), name="view_final_payment"),

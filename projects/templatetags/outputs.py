@@ -57,3 +57,24 @@ def money(v, decimals=2):
 def npn(v):
     """अङ्क मात्र नेपालीमा (कमा बिना)।"""
     return "" if v is None else str(v).translate(NP)
+
+
+@register.filter
+def sub(a, b):
+    """{{ a|sub:b }} — घटाउ (Decimal/float)."""
+    from decimal import Decimal
+
+    try:
+        return Decimal(str(a or 0)) - Decimal(str(b or 0))
+    except Exception:
+        return ""
+
+
+@register.filter
+def bs(d):
+    """{{ date|bs }} — वि.सं. मिति (नेपाली अङ्कमा)."""
+    if not d:
+        return ""
+    from usercommittee.workflow import bs_date
+
+    return bs_date(d)

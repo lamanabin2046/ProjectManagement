@@ -1,5 +1,12 @@
 <form method="get" class="no-print card p-4 mb-5" data-live-filter>
-  <div class="grid grid-cols-2 md:grid-cols-5 gap-3 items-end">
+  <div class="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-3 items-end">
+    <div><label class="form-label">खरिद विधि</label>
+      <select name="kind" class="form-select"><option value="">सबै विधि</option>
+        {% for k, l in kinds %}<option value="{{ k }}" {% if f.kind == k %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+    <div><label class="form-label">क्षेत्र</label>
+      <select name="sector" class="form-select"><option value="">सबै क्षेत्र</option>
+        {% for s in sectors %}<option value="{{ s.id }}" {% if f.sector == s.id|stringformat:'s' %}selected{% endif %}>{{ s.name }}</option>{% endfor %}
+        <option value="none" {% if f.sector == 'none' %}selected{% endif %}>क्षेत्र नराखिएको</option></select></div>
     <div><label class="form-label">आर्थिक वर्ष</label>
       <select name="fiscalyear" class="form-select"><option value="all">सबै</option>
         {% for y in fiscal_years %}<option value="{{ y.id }}" {% if f.fiscalyear == y.id|stringformat:'s' %}selected{% endif %}>{{ y.name }}</option>{% endfor %}</select></div>

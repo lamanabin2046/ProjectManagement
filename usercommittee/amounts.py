@@ -82,6 +82,10 @@ def check_final(project, valuation, office, user, total_tax, installments_paid=Z
         if valuation > Decimal(est.total_cost or 0) + TOLERANCE:
             warnings.append(f"मूल्याङ्कन {rs(valuation)} कुल लागत अनुमान {rs(est.total_cost)} भन्दा "
                             f"{rs(valuation - est.total_cost)} बढी छ — बढी भाग उपभोक्ता समितिले बेहोर्ने।")
+    if project is not None:
+        from projects.budget import check_payment
+        if (e := check_payment(project, office, "अन्तिम भुक्तानी")):
+            errors.append(e)
     net = office - total_tax - installments_paid
     if net < 0:
         errors.append(f"खुद भुक्तानी {rs(net)} ऋणात्मक भयो (कार्यालय {rs(office)} − कर {rs(total_tax)} − "

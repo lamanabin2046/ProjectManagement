@@ -13,12 +13,20 @@ class _OfficerConflictOptional:
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        for name in ("officer_conflict", "min_user_contribution_pct"):
+        for name in ("officer_conflict", "min_user_contribution_pct", "retention_months"):
             if name in self.fields:
                 self.fields[name].required = False
 
     def clean_officer_conflict(self):
         return self.cleaned_data.get("officer_conflict") or "warn"
+
+    def clean_retention_months(self):
+        v = self.cleaned_data.get("retention_months")
+        if v is None:
+            return getattr(self.instance, "retention_months", None) or 12
+        if v > 120:
+            raise forms.ValidationError("धरौटी फिर्ता अवधि १२० महिनाभन्दा बढी हुन सक्दैन।")
+        return v
 
     def clean_min_user_contribution_pct(self):
         from decimal import Decimal
@@ -100,6 +108,7 @@ class OfficeSettingsForm(_OfficerConflictOptional, forms.ModelForm):
             "office_name", "address", "district", "province", "phone", "email", "website",
             "slogan", "logo", "show_govt_emblem", "letterhead_color", "letterhead_image",
             "cao_name", "bank_name", "require_public_audit", "officer_conflict", "min_user_contribution_pct",
+            "retention_months",
         ]
 
     def clean_logo(self):

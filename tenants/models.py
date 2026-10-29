@@ -92,6 +92,10 @@ class Palika(TenantMixin):
         "उपभोक्ता अंशदान न्यूनतम (%)", max_digits=5, decimal_places=2, default=0,
         help_text="कुल लागत अनुमानको कम्तीमा यति % उपभोक्ता अंशदान (श्रमदान) हुनुपर्छ। ० = जाँच नगर्ने।",
     )
+    retention_months = models.PositiveSmallIntegerField(
+        "धरौटी फिर्ता अवधि (महिना)", default=12,
+        help_text="अन्तिम बिल/भुक्तानी मितिदेखि यति महिना (त्रुटि सच्याउने अवधि) पछि धरौटी फिर्ता योग्य हुन्छ।",
+    )
 
     # SaaS
     plan = models.CharField(max_length=20, choices=PLANS, default="trial")

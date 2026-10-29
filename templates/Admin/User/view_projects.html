@@ -89,7 +89,7 @@
           <tr>
             <td>{{ forloop.counter }}</td>
             <td>{{ i.fiscalyear.name }}</td>
-            <td><a href="{% url 'project_timeline' i.id %}" class="text-brand-600 font-semibold hover:underline">{{ i.name }}</a></td>
+            <td><a href="{% url 'project_timeline' i.id %}" class="text-brand-600 font-semibold hover:underline">{{ i.name }}</a>{% if i.sector %}<span class="block text-[11px] text-slate-400">{{ i.sector.name }}{% if i.subsector %} › {{ i.subsector.name }}{% endif %}</span>{% endif %}</td>
             <td>{{ i.ward.name }}</td>
             <td>{{ i.project_type.type }}</td>
             <td>{{ i.address }}</td>

@@ -1,14 +1,14 @@
 {% extends 'base.html' %}
 {% load outputs %}
-{% block title %}कर कट्टी प्रतिवेदन{% endblock %}
+{% block title %}{{ report_title }}{% endblock %}
 
 {% block content %}
-{% include 'reports/_head.html' with report_title="उपभोक्ता समिति — कर कट्टी प्रतिवेदन" active="taxes" %}
+{% include 'reports/_head.html' with active="taxes" %}
 {% include 'reports/_filters.html' %}
 
 <section class="card mb-5">
   <div class="card-header"><h2 class="font-semibold text-slate-800">कर शीर्षक र वडाअनुसार</h2>
-    <span class="text-xs text-slate-500">अन्तिम भुक्तानी र किस्ता दुवैको कर</span></div>
+    <span class="text-xs text-slate-500">किस्ता / रनिङ बिल र अन्तिम भुक्तानी — सबैको कर तथा धरौटी</span></div>
   <div class="overflow-x-auto">
     <table class="w-full text-sm">
       <thead><tr class="bg-slate-50 text-xs text-slate-500">
@@ -49,10 +49,10 @@
     </summary>
     <div class="overflow-x-auto">
       <table class="w-full text-sm">
-        <thead><tr class="bg-slate-50 text-xs text-slate-500"><th class="px-3 py-2 text-left font-medium">योजना</th><th class="px-3 py-2 text-left font-medium">उपभोक्ता समिति</th><th class="px-3 py-2 text-left font-medium">वडा</th><th class="px-3 py-2 text-right font-medium">कुल भुक्तानी</th><th class="px-3 py-2 text-right font-medium">यो कर</th></tr></thead>
+        <thead><tr class="bg-slate-50 text-xs text-slate-500"><th class="px-3 py-2 text-left font-medium">योजना</th><th class="px-3 py-2 text-left font-medium">समिति / निर्माण व्यवसायी / फर्म</th><th class="px-3 py-2 text-left font-medium">वडा</th><th class="px-3 py-2 text-right font-medium">कुल भुक्तानी</th><th class="px-3 py-2 text-right font-medium">यो कर</th></tr></thead>
         <tbody class="divide-y divide-slate-100">
           {% for r, v in h.projects %}
-          <tr><td class="px-3 py-2">{{ r.p.name }}</td><td class="px-3 py-2 text-slate-500">{{ r.uc.name|default:'—' }}</td><td class="px-3 py-2">{{ r.p.ward.name }}</td><td class="px-3 py-2 text-right">{{ r.gross|money }}</td><td class="px-3 py-2 text-right font-medium">{{ v|money }}</td></tr>
+          <tr><td class="px-3 py-2">{{ r.p.name }}</td><td class="px-3 py-2 text-slate-500">{{ r.party|default:'—' }}{% if not f.kind %} <span class="text-[10px] text-slate-400">({{ r.kind_label }})</span>{% endif %}</td><td class="px-3 py-2">{{ r.p.ward.name }}</td><td class="px-3 py-2 text-right">{{ r.gross|money }}</td><td class="px-3 py-2 text-right font-medium">{{ v|money }}</td></tr>
           {% endfor %}
         </tbody>
       </table>

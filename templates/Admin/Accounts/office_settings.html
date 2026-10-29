@@ -159,6 +159,15 @@
             </div>
             <p class="form-hint">कुल लागत अनुमानको कम्तीमा यति % नभए लागत अनुमान सुरक्षित हुँदैन। ० राखे जाँच हुँदैन।</p>
           </div>
+          <div>
+            <label class="form-label">धरौटी फिर्ता अवधि (त्रुटि सच्याउने अवधि)</label>
+            <div class="relative">
+              <input name="retention_months" type="number" min="0" max="120" step="1" class="form-input pr-14"
+                     value="{{ form.retention_months.value|default:12 }}">
+              <span class="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">महिना</span>
+            </div>
+            <p class="form-hint">अन्तिम बिल/भुक्तानी मितिदेखि यति महिनापछि धरौटी फिर्ता योग्य हुन्छ (उपभोक्ता समिति, बोलपत्र, दरभाउपत्र सबैमा)।</p>
+          </div>
         </div>
       </section>
     </div>

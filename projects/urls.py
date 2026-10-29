@@ -1,6 +1,6 @@
 from django.urls import path
 from .import views
-from . import views_outputs
+from . import views_budget, views_deductions, views_guarantees, views_outputs, views_sectors
 from django.conf import settings
 from django.conf.urls.static import static
 
@@ -17,6 +17,7 @@ urlpatterns = [
     path('<int:project_id>/outputs/', views_outputs.project_outputs, name='project_outputs'),
     path('Reports/Outputs/', views_outputs.outputs_report, name='outputs_report'),
     path('Settings/Outputs/', views_outputs.output_settings, name='output_settings'),
+    path('Settings/Sectors/', views_sectors.sector_settings, name='sector_settings'),
 
     # ================= सेटिङ — लुकअप व्यवस्थापन =================
     path('Settings/FiscalYear/', views.manage_fiscal_years, name='manage_fiscal_years'),
@@ -30,4 +31,18 @@ urlpatterns = [
     path('Settings/ProcurementType/', views.manage_procurement_types, name='manage_procurement_types'),
     path('Settings/ProcurementType/Edit/<int:id>/', views.edit_procurement_type, name='edit_procurement_type'),
     path('Settings/ProcurementType/Delete/<int:id>/', views.delete_procurement_type, name='delete_procurement_type'),
+    # ================= कर तथा धरौटी कट्टी / धरौटी फिर्ता =================
+    path('Reports/Deductions/', views_deductions.deduction_register, name='deduction_register'),
+    path('Retention/', views_deductions.retention_list, name='retention_list'),
+    path('Retention/<int:project_id>/recommend/', views_deductions.retention_recommend, name='retention_recommend'),
+    path('Retention/<int:project_id>/tippani/', views_deductions.retention_tippani, name='retention_tippani'),
+    path('Retention/<int:project_id>/release/', views_deductions.retention_release, name='retention_release'),
+    # ================= बजेट नियन्त्रण =================
+    path('Budget/', views_budget.budget_status, name='budget_status'),
+    path('Budget/Heads/', views_budget.budget_heads, name='budget_heads'),
+    path('Budget/Amendments/', views_budget.amendments, name='budget_amendments'),
+    path('Budget/Amendments/new/', views_budget.amendment_new, name='budget_amendment_new'),
+    # ================= बैंक ग्यारेन्टी =================
+    path('Guarantees/Performance/', views_guarantees.performance_guarantees, name='performance_guarantees'),
+    path('Guarantees/Advance/', views_guarantees.advance_guarantees, name='advance_guarantees'),
 ]

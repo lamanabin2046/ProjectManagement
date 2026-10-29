@@ -72,6 +72,13 @@ def bs_date(d):
         return str(d)
 
 
+def sector_note(project):
+    """' · क्षेत्र › उपक्षेत्र' (नभए '')."""
+    if not project.sector_id:
+        return ""
+    return f" · {project.sector.name}" + (f" › {project.subsector.name}" if project.subsector_id else "")
+
+
 def _rel(obj, name):
     """Reverse one-to-one access that returns None instead of raising."""
     try:
@@ -201,7 +208,8 @@ def project_workflow(project, user_type=None, user=None):
 
     # योजना दर्ता
     s["project"] = {"done": True, "date": None,
-                    "note": (project.fiscalyear.name if project.fiscalyear else "") + f" · {MODE_LABELS[mode]}",
+                    "note": (project.fiscalyear.name if project.fiscalyear else "") + f" · {MODE_LABELS[mode]}"
+                            + sector_note(project),
                     "actions": [_link("योजना सम्पादन", "edit_project", project.id)] if "project.manage" in P else []}
 
     # समिति गठन
@@ -439,7 +447,7 @@ def workflow_queryset():
 
     return (
         Project.objects.filter(procurement_type=1)
-        .select_related("ward", "fiscalyear", "user_committee", "cost_estimate", "ward_recommendation",
+        .select_related("ward", "fiscalyear", "sector", "subsector", "user_committee", "cost_estimate", "ward_recommendation",
                         "uc_approval", "final_payment", "completion_recommendation", "public_audit")
         .prefetch_related("document_prints", "timelines", "inspection_notes", "installments", "outputs",
                           "user_committee__member_links__person")

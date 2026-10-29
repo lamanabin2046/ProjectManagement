@@ -18,6 +18,8 @@ from django.urls import reverse
 from accounts.models import Ward
 from accounts.permissions import has_perm
 from biddings.views_workflow import F, Form, plain, to_bs
+from projects.budget import check_payment, over_budget_warning
+from projects.budget import spent as budget_spent
 from projects.models import FiscalYear
 from usercommittee.workflow import approver_identity, bs_date
 
@@ -88,6 +90,9 @@ def _cards(q):
 
 def _render_form(request, project, ctx):
     q = current_quation(project)
+    if ctx.get("script") == "quot_final" or ctx.get("icon") == "wallet":   # भुक्तानी फारम
+        from projects.budget import budget_note
+        ctx["note"] = (ctx.get("note", "") + " · " if ctx.get("note") else "") + budget_note(project)
     return render(request, "biddings/wf_form.html", {
         "module_label": LABEL, "project": project, "cards": _cards(q),
         "next": request.POST.get("next") or request.GET.get("next", ""), "back": _next(request, project),
@@ -334,6 +339,8 @@ def approve(request, project_id):
             warnings.append(f"{np(len(pairs))} वटा मात्र दरभाउपत्र प्राप्त भएको छ।")
         if pairs and pairs[0][1] > D(q.cost_estimate):
             warnings.append("न्यूनतम कबोल लागत अनुमानभन्दा बढी छ।")
+        if pairs and (w := over_budget_warning(project, pairs[0][1], "न्यूनतम कबोल")):
+            warnings.append(w)
         if not q.prints.filter(doc_type="invite_letter").exists():
             warnings.append("आह्वान पत्र छापिएको अभिलेख छैन।")
     if request.method == "POST":
@@ -439,6 +446,8 @@ def final(request, project_id):
         net = posted if posted else computed
         if not errors and net <= 0:
             errors.append("खुद भुक्तानी रकम ० भन्दा बढी हुनुपर्छ।")
+        if not errors and (e := check_payment(project, valuation, "अन्तिम बिल")):
+            errors.append(e)
         if on and q.agreement_date and on < q.agreement_date:
             errors.append("बिल मिति सम्झौता मितिभन्दा अघि हुन सक्दैन।")
         if not errors:
@@ -508,6 +517,8 @@ def advance(request, project_id):
         errors = f.errors
         if amount is not None and paid + amount > agreed:
             errors.append("कुल अग्रिम भुक्तानी सम्झौता रकमभन्दा बढी हुन सक्दैन।")
+        if amount is not None and (e := check_payment(project, budget_spent(project) + amount, "यो अग्रिम")):
+            errors.append(e)
         if amount is not None and g_amount is not None and g_amount < amount:
             errors.append("अग्रिम भुक्तानी जमानत रकम अग्रिम रकमभन्दा कम हुन सक्दैन।")
         if issue and expiry and expiry <= issue:

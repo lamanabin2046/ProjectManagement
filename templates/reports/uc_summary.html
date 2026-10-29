@@ -1,9 +1,9 @@
 {% extends 'base.html' %}
 {% load outputs nepali_filters %}
-{% block title %}उपभोक्ता समिति एकीकृत प्रतिवेदन{% endblock %}
+{% block title %}{{ report_title }}{% endblock %}
 
 {% block content %}
-{% include 'reports/_head.html' with report_title="उपभोक्ता समिति एकीकृत प्रतिवेदन" active="summary" %}
+{% include 'reports/_head.html' with active="summary" %}
 {% include 'reports/_filters.html' %}
 
 {# ---------- मुख्य अङ्क ---------- #}
@@ -17,13 +17,89 @@
       {% endif %}{% endfor %}
     </div>
   </div>
-  <div class="card p-4"><p class="text-xs text-slate-500">विनियोजित रकम</p><p class="text-lg font-bold text-slate-800">रु. {{ t.allocated|money:0 }}</p><p class="text-[11px] text-slate-400">लागत अनुमान रु. {{ t.estimate|money:0 }}</p></div>
+  <div class="card p-4"><p class="text-xs text-slate-500">विनियोजित रकम</p><p class="text-lg font-bold text-slate-800">रु. {{ t.allocated|money:0 }}</p><p class="text-[11px] text-slate-400">लागत अनुमान रु. {{ t.estimate|money:0 }} · सम्झौता रु. {{ t.contract|money:0 }}</p></div>
   <div class="card p-4"><p class="text-xs text-slate-500">कुल भुक्तानी</p><p class="text-lg font-bold text-brand-700">रु. {{ t.gross|money:0 }}</p>
     <div class="mt-1.5 h-1.5 rounded-full bg-slate-100 overflow-hidden"><div class="h-full bg-brand-500" style="width: {% if t.paid_pct > 100 %}100{% else %}{{ t.paid_pct|stringformat:'s' }}{% endif %}%"></div></div>
     <p class="text-[11px] text-slate-400 mt-1">विनियोजनको {{ t.paid_pct|npn }}%</p></div>
   <div class="card p-4"><p class="text-xs text-slate-500">कर कट्टी</p><p class="text-lg font-bold text-rose-700">रु. {{ t.tax|money:0 }}</p><p class="text-[11px] text-slate-400">खुद भुक्तानी रु. {{ t.net|money:0 }}</p></div>
-  <div class="card p-4"><p class="text-xs text-slate-500">बाँकी विनियोजन</p><p class="text-lg font-bold text-emerald-700">रु. {{ t.remaining|money:0 }}</p><p class="text-[11px] text-slate-400">उपभोक्ता अंशदान रु. {{ t.user_share|money:0 }}</p></div>
+  <div class="card p-4"><p class="text-xs text-slate-500">बाँकी विनियोजन</p><p class="text-lg font-bold text-emerald-700">रु. {{ t.remaining|money:0 }}</p><p class="text-[11px] text-slate-400">{% if t.user_share %}उपभोक्ता अंशदान रु. {{ t.user_share|money:0 }}{% else %}विनियोजन − कुल भुक्तानी{% endif %}</p></div>
 </div>
+
+{# ---------- खरिद विधिअनुसार ---------- #}
+{% if kinds_table|length > 1 or not f.kind %}
+<section class="card mb-5">
+  <div class="card-header"><h2 class="font-semibold text-slate-800"><i class="fas fa-sitemap text-brand-500"></i> खरिद विधिअनुसार सारांश</h2></div>
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead><tr class="bg-slate-50 text-xs text-slate-500">
+        <th class="px-3 py-2.5 text-left font-medium">खरिद विधि</th><th class="px-3 py-2.5 text-right font-medium">योजना</th>
+        <th class="px-3 py-2.5 text-right font-medium">सम्पन्न</th><th class="px-3 py-2.5 text-right font-medium">विनियोजित</th>
+        <th class="px-3 py-2.5 text-right font-medium">लागत अनुमान</th><th class="px-3 py-2.5 text-right font-medium">सम्झौता</th>
+        <th class="px-3 py-2.5 text-right font-medium">कुल भुक्तानी</th><th class="px-3 py-2.5 text-right font-medium">कर कट्टी</th>
+        <th class="px-3 py-2.5 text-right font-medium">खुद भुक्तानी</th><th class="px-3 py-2.5 text-right font-medium">बाँकी</th>
+      </tr></thead>
+      <tbody class="divide-y divide-slate-100">
+        {% for k in kinds_table %}
+        <tr>
+          <td class="px-3 py-2"><a href="?{{ qs }}&kind={{ k.kind }}" class="font-medium text-brand-700 hover:underline no-print-link">{{ k.label }}</a></td>
+          <td class="px-3 py-2 text-right">{{ k.count|npn }}</td>
+          <td class="px-3 py-2 text-right">{{ k.by_status.completed|npn }}</td>
+          <td class="px-3 py-2 text-right">{{ k.allocated|money }}</td>
+          <td class="px-3 py-2 text-right">{{ k.estimate|money }}</td>
+          <td class="px-3 py-2 text-right">{{ k.contract|money }}</td>
+          <td class="px-3 py-2 text-right font-medium">{{ k.gross|money }}</td>
+          <td class="px-3 py-2 text-right text-rose-700">{{ k.tax|money }}</td>
+          <td class="px-3 py-2 text-right">{{ k.net|money }}</td>
+          <td class="px-3 py-2 text-right text-emerald-700">{{ k.remaining|money }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="10" class="px-3 py-8 text-center text-slate-400">यो छनोटमा कुनै योजना छैन।</td></tr>
+        {% endfor %}
+      </tbody>
+      {% if kinds_table|length > 1 %}
+      <tfoot><tr class="bg-slate-50 font-semibold border-t-2 border-slate-200">
+        <td class="px-3 py-2.5">जम्मा</td><td class="px-3 py-2.5 text-right">{{ t.count|npn }}</td>
+        <td class="px-3 py-2.5 text-right">{{ t.by_status.completed|npn }}</td><td class="px-3 py-2.5 text-right">{{ t.allocated|money }}</td>
+        <td class="px-3 py-2.5 text-right">{{ t.estimate|money }}</td><td class="px-3 py-2.5 text-right">{{ t.contract|money }}</td>
+        <td class="px-3 py-2.5 text-right">{{ t.gross|money }}</td><td class="px-3 py-2.5 text-right text-rose-700">{{ t.tax|money }}</td>
+        <td class="px-3 py-2.5 text-right">{{ t.net|money }}</td><td class="px-3 py-2.5 text-right text-emerald-700">{{ t.remaining|money }}</td>
+      </tr></tfoot>
+      {% endif %}
+    </table>
+  </div>
+</section>
+{% endif %}
+
+{# ---------- क्षेत्रअनुसार ---------- #}
+{% if sectors_table %}
+<section class="card mb-5">
+  <div class="card-header"><h2 class="font-semibold text-slate-800"><i class="fas fa-layer-group text-brand-500"></i> क्षेत्रअनुसार सारांश</h2></div>
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead><tr class="bg-slate-50 text-xs text-slate-500">
+        <th class="px-3 py-2.5 text-left font-medium">क्षेत्र</th><th class="px-3 py-2.5 text-right font-medium">योजना</th>
+        <th class="px-3 py-2.5 text-right font-medium">सम्पन्न</th><th class="px-3 py-2.5 text-right font-medium">विनियोजित</th>
+        <th class="px-3 py-2.5 text-right font-medium">सम्झौता</th><th class="px-3 py-2.5 text-right font-medium">कुल भुक्तानी</th>
+        <th class="px-3 py-2.5 text-right font-medium">कर कट्टी</th><th class="px-3 py-2.5 text-right font-medium">बाँकी</th>
+      </tr></thead>
+      <tbody class="divide-y divide-slate-100">
+        {% for k in sectors_table %}
+        <tr>
+          <td class="px-3 py-2">{% if k.sector %}<a href="?{{ qs }}&sector={{ k.sector.id }}" class="text-brand-700 hover:underline">{{ k.name }}</a>{% else %}<a href="?{{ qs }}&sector=none" class="text-slate-500 hover:underline">{{ k.name }}</a>{% endif %}</td>
+          <td class="px-3 py-2 text-right">{{ k.count|npn }}</td>
+          <td class="px-3 py-2 text-right">{{ k.by_status.completed|npn }}</td>
+          <td class="px-3 py-2 text-right">{{ k.allocated|money }}</td>
+          <td class="px-3 py-2 text-right">{{ k.contract|money }}</td>
+          <td class="px-3 py-2 text-right font-medium">{{ k.gross|money }}</td>
+          <td class="px-3 py-2 text-right text-rose-700">{{ k.tax|money }}</td>
+          <td class="px-3 py-2 text-right text-emerald-700">{{ k.remaining|money }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
 
 {# ---------- वडागत ---------- #}
 <section class="card mb-5">
@@ -107,5 +183,5 @@
   </section>
 </div>
 
-<p class="hidden print:block text-[11px] text-slate-500 mt-4">कुल भुक्तानी = अन्तिम मूल्याङ्कनमा कार्यालयले बेहोर्ने रकम (किस्ता समेत) वा अन्तिम मूल्याङ्कन नभएकामा दिइसकेका किस्ता। खुद भुक्तानी = कुल भुक्तानी − कर कट्टी।</p>
+<p class="text-[11px] text-slate-500 mt-4">कुल भुक्तानी = उपभोक्ता समितिमा कार्यालयले बेहोर्ने रकम (किस्ता समेत); बोलपत्र / दरभाउपत्रमा दिइसकेको अग्रिम, रनिङ र अन्तिम बिल (कर तथा धरौटी कट्टी समेत)। खुद भुक्तानी = कुल भुक्तानी − कर तथा धरौटी कट्टी।</p>
 {% endblock %}

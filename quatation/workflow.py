@@ -10,7 +10,7 @@ from decimal import Decimal
 
 from django.urls import reverse
 
-from usercommittee.workflow import _link, _modal, add_next, bs_date
+from usercommittee.workflow import _link, _modal, add_next, bs_date, sector_note
 
 ZERO = Decimal("0")
 MIN_FIRMS = 3            # सार्वजनिक खरिद नियमावली: कम्तीमा ३ सूचीकृत फर्मबाट दरभाउपत्र
@@ -122,7 +122,7 @@ def quot_workflow(project, user=None):
 
     s["project"] = {"done": True, "date": None,
                     "note": (project.fiscalyear.name if project.fiscalyear else "") +
-                            (f" · विनियोजित रु. {money(project.budget)}" if project.budget else ""),
+                            (f" · विनियोजित रु. {money(project.budget)}" if project.budget else "") + sector_note(project),
                     "actions": [_link("योजना सम्पादन", "edit_project", pid)] if "project.manage" in P else []}
 
     # लागत अनुमान र आह्वान
@@ -288,7 +288,7 @@ def workflow_queryset():
 
     return (
         Project.objects.filter(procurement_type=3)
-        .select_related("ward", "fiscalyear")
+        .select_related("ward", "fiscalyear", "sector", "subsector")
         .prefetch_related("outputs", "quation_set__suchikrit", "quation_set__prints", "quation_set__approval",
                           "quation_set__quationfinal_set", "quation_set__advances")
         .order_by("-id")

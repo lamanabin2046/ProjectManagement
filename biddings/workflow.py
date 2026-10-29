@@ -12,7 +12,7 @@ from decimal import Decimal
 
 from django.urls import reverse
 
-from usercommittee.workflow import _link, _modal, add_next, bs_date
+from usercommittee.workflow import _link, _modal, add_next, bs_date, sector_note
 
 ZERO = Decimal("0")
 
@@ -115,7 +115,7 @@ def bid_workflow(project, user=None):
     # योजना दर्ता
     s["project"] = {"done": True, "date": None,
                     "note": (project.fiscalyear.name if project.fiscalyear else "") +
-                            (f" · विनियोजित रु. {money(project.budget)}" if project.budget else ""),
+                            (f" · विनियोजित रु. {money(project.budget)}" if project.budget else "") + sector_note(project),
                     "actions": [_link("योजना सम्पादन", "edit_project", pid)] if "project.manage" in P else []}
 
     # लागत अनुमान र बोलपत्र आह्वान
@@ -332,7 +332,7 @@ def workflow_queryset():
 
     return (
         Project.objects.filter(procurement_type=2)
-        .select_related("ward", "fiscalyear")
+        .select_related("ward", "fiscalyear", "sector", "subsector")
         .prefetch_related(
             "outputs", "biddings__prints", "biddings__approval", "biddings__bond_requirement",
             "biddings__contract__bond_issued__extensions", "biddings__contract__extensions",
